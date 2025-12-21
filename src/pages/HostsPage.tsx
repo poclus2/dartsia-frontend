@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { Server, ArrowUpRight, Wifi, HardDrive, DollarSign, Shield, X, TrendingUp, TrendingDown } from 'lucide-react';
+import { SearchInput } from '@/components/search/SearchInput';
 
 interface Host {
   id: string;
@@ -78,20 +79,42 @@ const HostsPage = () => {
   const [hosts, setHosts] = useState<Host[]>([]);
   const [selectedHost, setSelectedHost] = useState<Host | null>(null);
   const [sortBy, setSortBy] = useState<'uptime' | 'price' | 'reliability' | 'storage'>('reliability');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     setHosts(generateMockHosts(50));
   }, []);
 
-  const sortedHosts = [...hosts].sort((a, b) => {
-    switch (sortBy) {
-      case 'uptime': return b.uptime - a.uptime;
-      case 'price': return a.pricePerTB - b.pricePerTB;
-      case 'reliability': return b.reliability - a.reliability;
-      case 'storage': return (b.storageTotal - b.storageUsed) - (a.storageTotal - a.storageUsed);
-      default: return 0;
+  // Filter and sort hosts
+  const filteredAndSortedHosts = useMemo(() => {
+    let result = [...hosts];
+    
+    // Filter by search
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(host => 
+        host.id.toLowerCase().includes(query) ||
+        host.address.toLowerCase().includes(query) ||
+        host.location.toLowerCase().includes(query) ||
+        (query === 'high uptime' && host.uptime >= 95) ||
+        (query === 'low price' && host.pricePerTB < 0.002) ||
+        (query === 'reliable' && host.reliability >= 90)
+      );
     }
-  });
+    
+    // Sort
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case 'uptime': return b.uptime - a.uptime;
+        case 'price': return a.pricePerTB - b.pricePerTB;
+        case 'reliability': return b.reliability - a.reliability;
+        case 'storage': return (b.storageTotal - b.storageUsed) - (a.storageTotal - a.storageUsed);
+        default: return 0;
+      }
+    });
+    
+    return result;
+  }, [hosts, searchQuery, sortBy]);
 
   return (
     <div className="min-h-screen flex">
@@ -104,6 +127,12 @@ const HostsPage = () => {
             <h1 className="text-lg font-semibold">Host Intelligence</h1>
           </div>
           <div className="flex items-center gap-4">
+            <SearchInput
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Host ID, region, or 'high uptime'..."
+              className="w-72"
+            />
             <span className="text-xs text-foreground-muted">Sort by:</span>
             {(['reliability', 'uptime', 'price', 'storage'] as const).map((option) => (
               <button
@@ -138,14 +167,14 @@ const HostsPage = () => {
               <span className="text-sm text-foreground-muted">{hosts.filter(h => h.uptime < 80).length} Critical</span>
             </div>
             <div className="ml-auto font-mono text-xs text-foreground-subtle">
-              Total: {hosts.length} hosts | {hosts.reduce((acc, h) => acc + h.storageTotal, 0).toFixed(1)} TB capacity
+              Showing: {filteredAndSortedHosts.length} of {hosts.length} hosts | {hosts.reduce((acc, h) => acc + h.storageTotal, 0).toFixed(1)} TB capacity
             </div>
           </div>
         </div>
 
         {/* Host Rails */}
         <div className="p-6 space-y-2">
-          {sortedHosts.map((host) => (
+          {filteredAndSortedHosts.map((host) => (
             <div
               key={host.id}
               className={cn(
@@ -227,6 +256,12 @@ const HostsPage = () => {
               </div>
             </div>
           ))}
+
+          {filteredAndSortedHosts.length === 0 && (
+            <div className="text-center py-12 text-foreground-muted">
+              No hosts match your search
+            </div>
+          )}
         </div>
       </div>
 

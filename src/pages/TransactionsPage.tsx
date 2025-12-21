@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { ArrowLeftRight, Filter } from 'lucide-react';
+import { SearchInput } from '@/components/search/SearchInput';
 
 interface Transaction {
   id: string;
@@ -38,6 +39,7 @@ const generateMockTxs = (count: number): Transaction[] => {
 const TransactionsPage = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [activeFilters, setActiveFilters] = useState<Set<Transaction['type']>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     setTransactions(generateMockTxs(100));
@@ -53,9 +55,15 @@ const TransactionsPage = () => {
     setActiveFilters(newFilters);
   };
 
-  const filteredTxs = activeFilters.size === 0 
-    ? transactions 
-    : transactions.filter(tx => activeFilters.has(tx.type));
+  // Filter by type and search
+  const filteredTxs = transactions.filter(tx => {
+    const matchesFilter = activeFilters.size === 0 || activeFilters.has(tx.type);
+    const matchesSearch = !searchQuery || 
+      tx.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tx.from.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tx.to.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesFilter && matchesSearch;
+  });
 
   // Group by block
   const groupedByBlock = filteredTxs.reduce((acc, tx) => {
@@ -72,8 +80,14 @@ const TransactionsPage = () => {
           <ArrowLeftRight size={20} className="text-secondary" />
           <h1 className="text-lg font-semibold">Transaction Stream</h1>
         </div>
-        <div className="flex items-center gap-2 text-foreground-subtle">
-          <span className="text-xs font-mono">{filteredTxs.length} transactions</span>
+        <div className="flex items-center gap-4">
+          <SearchInput
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Transaction ID or address..."
+            className="w-72"
+          />
+          <span className="text-xs font-mono text-foreground-subtle">{filteredTxs.length} transactions</span>
         </div>
       </div>
 
@@ -127,10 +141,15 @@ const TransactionsPage = () => {
             <div className="space-y-1 ml-4">
               {txs.map((tx) => {
                 const config = txTypeConfig[tx.type];
+                const isHighlighted = searchQuery && tx.id.toLowerCase().includes(searchQuery.toLowerCase());
+                
                 return (
                   <div
                     key={tx.id}
-                    className="group relative flex items-center gap-4 p-3 bg-background-surface/50 border border-transparent hover:border-border transition-all cursor-pointer"
+                    className={cn(
+                      "group relative flex items-center gap-4 p-3 bg-background-surface/50 border border-transparent hover:border-border transition-all cursor-pointer",
+                      isHighlighted && 'border-secondary bg-secondary/10'
+                    )}
                   >
                     {/* Type indicator */}
                     <div className={cn('w-1 h-full absolute left-0 top-0', config.color)} />
@@ -177,6 +196,12 @@ const TransactionsPage = () => {
             </div>
           </div>
         ))}
+
+        {filteredTxs.length === 0 && (
+          <div className="text-center py-12 text-foreground-muted">
+            No transactions match your search
+          </div>
+        )}
       </div>
     </div>
   );

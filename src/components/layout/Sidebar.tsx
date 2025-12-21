@@ -13,6 +13,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 const navItems = [
   { path: '/', label: 'Network', icon: Activity },
@@ -33,7 +34,7 @@ export const Sidebar = () => {
     <aside
       className={cn(
         'fixed left-0 top-0 h-screen z-50 flex flex-col',
-        'bg-sidebar/80 backdrop-blur-xl border-r border-sidebar-border',
+        'bg-sidebar/95 backdrop-blur-xl border-r border-sidebar-border',
         'transition-all duration-300 ease-out',
         collapsed ? 'w-16' : 'w-56'
       )}
@@ -94,6 +95,19 @@ export const Sidebar = () => {
           })}
         </ul>
       </nav>
+
+      {/* Theme Toggle */}
+      <div className={cn(
+        'flex items-center border-t border-sidebar-border',
+        collapsed ? 'justify-center py-2' : 'justify-between px-3 py-2'
+      )}>
+        {!collapsed && (
+          <span className="text-[10px] uppercase tracking-wider text-foreground-subtle">
+            Theme
+          </span>
+        )}
+        <ThemeToggle />
+      </div>
 
       {/* Collapse Toggle */}
       <button

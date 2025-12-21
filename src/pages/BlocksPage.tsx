@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { ArrowRight, Clock, Hash, Layers } from 'lucide-react';
+import { SearchInput } from '@/components/search/SearchInput';
 
 interface Block {
   height: number;
@@ -27,10 +28,42 @@ const generateMockBlocks = (count: number, startHeight: number): Block[] => {
 const BlocksPage = () => {
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [selectedBlock, setSelectedBlock] = useState<Block | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [highlightedHeight, setHighlightedHeight] = useState<number | null>(null);
+  const blockRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
   useEffect(() => {
     setBlocks(generateMockBlocks(50, 489271));
   }, []);
+
+  // Handle search
+  useEffect(() => {
+    if (searchQuery) {
+      const height = parseInt(searchQuery);
+      if (!isNaN(height)) {
+        const block = blocks.find(b => b.height === height);
+        if (block) {
+          setHighlightedHeight(height);
+          const element = blockRefs.current.get(height);
+          element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          setHighlightedHeight(null);
+        }
+      } else {
+        // Search by hash prefix
+        const block = blocks.find(b => b.hash.toLowerCase().includes(searchQuery.toLowerCase()));
+        if (block) {
+          setHighlightedHeight(block.height);
+          const element = blockRefs.current.get(block.height);
+          element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          setHighlightedHeight(null);
+        }
+      }
+    } else {
+      setHighlightedHeight(null);
+    }
+  }, [searchQuery, blocks]);
 
   const formatTimeAgo = (date: Date) => {
     const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
@@ -49,9 +82,17 @@ const BlocksPage = () => {
           <Layers size={20} className="text-secondary" />
           <h1 className="text-lg font-semibold">Block Chain</h1>
         </div>
-        <div className="flex items-center gap-2 text-foreground-subtle">
-          <span className="text-xs font-mono">Latest:</span>
-          <span className="text-sm font-mono text-secondary">{blocks[0]?.height.toLocaleString()}</span>
+        <div className="flex items-center gap-4">
+          <SearchInput
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Block height (234567) or hash..."
+            className="w-72"
+          />
+          <div className="flex items-center gap-2 text-foreground-subtle">
+            <span className="text-xs font-mono">Latest:</span>
+            <span className="text-sm font-mono text-secondary">{blocks[0]?.height.toLocaleString()}</span>
+          </div>
         </div>
       </div>
 
@@ -59,74 +100,87 @@ const BlocksPage = () => {
         {/* Block Chain - Vertical */}
         <div className="flex-1 p-6">
           <div className="space-y-0">
-            {blocks.map((block, index) => (
-              <div key={block.height} className="relative">
-                {/* Connection line */}
-                {index > 0 && (
-                  <div className="absolute left-4 -top-4 w-px h-4 bg-border" />
-                )}
-                
-                <div
-                  className={cn(
-                    'block-node group cursor-pointer',
-                    selectedBlock?.height === block.height && 'border-primary glow-primary'
-                  )}
-                  onClick={() => setSelectedBlock(block)}
+            {blocks.map((block, index) => {
+              const isHighlighted = highlightedHeight === block.height;
+              
+              return (
+                <div 
+                  key={block.height} 
+                  className="relative"
+                  ref={(el) => {
+                    if (el) blockRefs.current.set(block.height, el);
+                  }}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      {/* Height indicator */}
-                      <div className={cn(
-                        'w-8 h-8 flex items-center justify-center border',
-                        selectedBlock?.height === block.height 
-                          ? 'border-primary bg-primary/10' 
-                          : 'border-border bg-background'
-                      )}>
-                        <span className="text-xs font-mono text-secondary">
-                          {(index + 1).toString().padStart(2, '0')}
-                        </span>
+                  {/* Connection line */}
+                  {index > 0 && (
+                    <div className="absolute left-4 -top-4 w-px h-4 bg-border" />
+                  )}
+                  
+                  <div
+                    className={cn(
+                      'block-node group cursor-pointer',
+                      selectedBlock?.height === block.height && 'border-primary glow-primary',
+                      isHighlighted && !selectedBlock && 'border-secondary ring-2 ring-secondary/30 bg-secondary/10'
+                    )}
+                    onClick={() => setSelectedBlock(block)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        {/* Height indicator */}
+                        <div className={cn(
+                          'w-8 h-8 flex items-center justify-center border',
+                          selectedBlock?.height === block.height 
+                            ? 'border-primary bg-primary/10' 
+                            : isHighlighted
+                            ? 'border-secondary bg-secondary/20'
+                            : 'border-border bg-background'
+                        )}>
+                          <span className="text-xs font-mono text-secondary">
+                            {(index + 1).toString().padStart(2, '0')}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-col">
+                          <span className="font-mono text-sm text-foreground">
+                            #{block.height.toLocaleString()}
+                          </span>
+                          <span className="font-mono text-[10px] text-foreground-subtle truncate max-w-[300px]">
+                            {block.hash}
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="flex flex-col">
-                        <span className="font-mono text-sm text-foreground">
-                          #{block.height.toLocaleString()}
-                        </span>
-                        <span className="font-mono text-[10px] text-foreground-subtle truncate max-w-[300px]">
-                          {block.hash}
-                        </span>
-                      </div>
-                    </div>
+                      <div className="flex items-center gap-6">
+                        <div className="flex flex-col items-end">
+                          <span className="text-xs text-foreground-muted">Transactions</span>
+                          <span className="font-mono text-sm text-secondary">{block.txCount}</span>
+                        </div>
+                        
+                        <div className="flex flex-col items-end">
+                          <span className="text-xs text-foreground-muted">Fees</span>
+                          <span className="font-mono text-sm">{block.fees.toFixed(4)} SC</span>
+                        </div>
 
-                    <div className="flex items-center gap-6">
-                      <div className="flex flex-col items-end">
-                        <span className="text-xs text-foreground-muted">Transactions</span>
-                        <span className="font-mono text-sm text-secondary">{block.txCount}</span>
-                      </div>
-                      
-                      <div className="flex flex-col items-end">
-                        <span className="text-xs text-foreground-muted">Fees</span>
-                        <span className="font-mono text-sm">{block.fees.toFixed(4)} SC</span>
-                      </div>
+                        <div className="flex flex-col items-end">
+                          <span className="text-xs text-foreground-muted">Time</span>
+                          <span className="font-mono text-xs text-foreground-subtle">
+                            {formatTimeAgo(block.timestamp)}
+                          </span>
+                        </div>
 
-                      <div className="flex flex-col items-end">
-                        <span className="text-xs text-foreground-muted">Time</span>
-                        <span className="font-mono text-xs text-foreground-subtle">
-                          {formatTimeAgo(block.timestamp)}
-                        </span>
+                        <ArrowRight 
+                          size={16} 
+                          className={cn(
+                            'text-foreground-subtle transition-all',
+                            'group-hover:text-primary group-hover:translate-x-1'
+                          )} 
+                        />
                       </div>
-
-                      <ArrowRight 
-                        size={16} 
-                        className={cn(
-                          'text-foreground-subtle transition-all',
-                          'group-hover:text-primary group-hover:translate-x-1'
-                        )} 
-                      />
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 

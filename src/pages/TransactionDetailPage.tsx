@@ -3,11 +3,12 @@ import { useParams, Link } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { useTransaction } from "@/hooks/useTransaction";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, ArrowRight, ArrowRightLeft, Clock, Box } from "lucide-react";
+import { ArrowLeft, ArrowRightLeft, Clock, Box } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function TransactionDetailPage() {
     const { hash } = useParams<{ hash: string }>();
+    // Use a fallback empty string to prevent query disable if hash is undefined initially (though router prevents this mostly)
     const { data: tx, isLoading, error } = useTransaction(hash || "");
 
     if (isLoading) {
@@ -34,6 +35,8 @@ export default function TransactionDetailPage() {
         );
     }
 
+
+
     return (
         <Layout>
             <div className="space-y-6">
@@ -43,7 +46,7 @@ export default function TransactionDetailPage() {
                             <ArrowLeft className="h-4 w-4" />
                         </Link>
                     </Button>
-                    <div>
+                    <div className="overflow-hidden">
                         <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
                             Transaction Details
                         </h1>
@@ -60,7 +63,7 @@ export default function TransactionDetailPage() {
                             <Box className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">#{tx.height.toLocaleString()}</div>
+                            <div className="text-2xl font-bold">#{tx.height?.toLocaleString() || "Pending"}</div>
                         </CardContent>
                     </Card>
 
@@ -70,7 +73,9 @@ export default function TransactionDetailPage() {
                             <Clock className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-lg font-bold">{new Date(tx.timestamp).toLocaleString()}</div>
+                            <div className="text-lg font-bold">
+                                {tx.timestamp ? new Date(tx.timestamp).toLocaleString() : "N/A"}
+                            </div>
                         </CardContent>
                     </Card>
 
@@ -80,7 +85,9 @@ export default function TransactionDetailPage() {
                             <ArrowRightLeft className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{(tx.size / 1024).toFixed(2)} KB</div>
+                            <div className="text-2xl font-bold">
+                                {tx.size ? (tx.size / 1024).toFixed(2) : "0"} KB
+                            </div>
                         </CardContent>
                     </Card>
                 </div>
@@ -88,39 +95,43 @@ export default function TransactionDetailPage() {
                 <div className="grid gap-6 md:grid-cols-2">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Inputs ({tx.inputs?.length || 0})</CardTitle>
+                            <CardTitle>Inputs ({tx.siacoin_inputs?.length || 0})</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="space-y-4">
-                                {tx.inputs?.map((input, i) => (
+                            <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                                {tx.siacoin_inputs?.map((input: import("@/types/api").SiacoinInput, i: number) => (
                                     <div key={i} className="p-3 border rounded-md bg-muted/30">
                                         <div className="text-xs font-mono text-muted-foreground break-all mb-1">Parent ID:</div>
                                         <div className="text-sm font-mono break-all">{input.parent_id || "N/A"}</div>
                                     </div>
                                 ))}
-                                {(!tx.inputs || tx.inputs.length === 0) && <div className="text-muted-foreground text-sm">No inputs</div>}
+                                {(!tx.siacoin_inputs || tx.siacoin_inputs.length === 0) && (
+                                    <div className="text-muted-foreground text-sm">No siacoin inputs</div>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
 
                     <Card>
                         <CardHeader>
-                            <CardTitle>Outputs ({tx.outputs?.length || 0})</CardTitle>
+                            <CardTitle>Outputs ({tx.siacoin_outputs?.length || 0})</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="space-y-4">
-                                {tx.outputs?.map((output, i) => (
-                                    <div key={i} className="p-3 border rounded-md bg-muted/30 flex justify-between items-center gap-4">
+                            <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                                {tx.siacoin_outputs?.map((output: import("@/types/api").SiacoinOutput, i: number) => (
+                                    <div key={i} className="p-3 border rounded-md bg-muted/30 flex flex-col gap-2">
                                         <div className="overflow-hidden">
                                             <div className="text-xs font-mono text-muted-foreground mb-1">Address:</div>
-                                            <div className="text-sm font-mono truncate">{output.unlock_hash || "N/A"}</div>
+                                            <div className="text-sm font-mono break-all">{output.unlock_hash || "N/A"}</div>
                                         </div>
-                                        <div className="text-right whitespace-nowrap">
+                                        <div className="self-end">
                                             <div className="font-bold text-primary">{output.value} SC</div>
                                         </div>
                                     </div>
                                 ))}
-                                {(!tx.outputs || tx.outputs.length === 0) && <div className="text-muted-foreground text-sm">No outputs</div>}
+                                {(!tx.siacoin_outputs || tx.siacoin_outputs.length === 0) && (
+                                    <div className="text-muted-foreground text-sm">No siacoin outputs</div>
+                                )}
                             </div>
                         </CardContent>
                     </Card>

@@ -1,72 +1,91 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { ArrowRight, Clock, Hash, Layers, ChevronDown } from 'lucide-react';
 import { SearchInput } from '@/components/search/SearchInput';
 import { MobileBlockCard } from '@/components/mobile/MobileBlockCard';
 import { MobileBottomSheet } from '@/components/mobile/MobileBottomSheet';
 import { useMobile } from '@/hooks/useMobile';
+import { useBlocks } from '@/hooks/useDartsia';
+import { dartsiaAPI } from '@/api/dartsia';
+import { DartsiaBlock } from '@/types/dartsia';
+import { FourSquaresLoader } from '@/components/ui/loaders/FourSquaresLoader';
+import { useQuery } from '@tanstack/react-query';
 
-interface Block {
-  height: number;
-  hash: string;
-  txCount: number;
-  fees: number;
-  timestamp: Date;
-  size: number;
-  miner: string;
-}
-
-const generateMockBlocks = (count: number, startHeight: number): Block[] => {
-  return Array.from({ length: count }, (_, i) => ({
-    height: startHeight - i,
-    hash: `0000000000000000000${Math.random().toString(16).slice(2, 50)}`,
-    txCount: Math.floor(Math.random() * 80) + 5,
-    fees: Math.random() * 10,
-    timestamp: new Date(Date.now() - i * 600000),
-    size: Math.floor(Math.random() * 500000) + 100000,
-    miner: `host_${Math.random().toString(36).slice(2, 8)}`,
-  }));
-};
+// Helper to map DartsiaBlock to UI format
+const mapBlock = (b: DartsiaBlock) => ({
+  height: b.height,
+  hash: b.id,
+  txCount: b.transactionsCount || b.transactions?.length || 0,
+  fees: b.fees || (b.transactions?.reduce((acc, tx) =>
+    acc + (tx.miner_fees?.reduce((sum, fee) => sum + parseFloat(fee) / 1e24, 0) || 0)
+    , 0) || 0),
+  timestamp: new Date(b.timestamp),
+  size: 0, // Not available in current API
+  miner: b.miner_payouts?.[0]?.siacoin_output?.address || 'Unknown'
+});
 
 const BlocksPage = () => {
-  const [blocks, setBlocks] = useState<Block[]>([]);
-  const [selectedBlock, setSelectedBlock] = useState<Block | null>(null);
+  const navigate = useNavigate();
+  const [page, setPage] = useState(1);
+  const { data: blocksData, isLoading } = useBlocks(page, 50);
+  const [blocks, setBlocks] = useState<ReturnType<typeof mapBlock>[]>([]);
+
+  const [selectedBlock, setSelectedBlock] = useState<ReturnType<typeof mapBlock> | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [highlightedHeight, setHighlightedHeight] = useState<number | null>(null);
   const blockRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const { isMobile } = useMobile();
 
-  useEffect(() => {
-    setBlocks(generateMockBlocks(50, 489271));
-  }, []);
+  // Fetch detailed block data when selected
+  const { data: detailedBlock } = useQuery({
+    queryKey: ['block-detail', selectedBlock?.height],
+    queryFn: () => selectedBlock ? dartsiaAPI.getBlockById(String(selectedBlock.height)) : null,
+    enabled: !!selectedBlock,
+  });
 
-  // Handle search
+  // Update blocks when data loads
   useEffect(() => {
-    if (searchQuery) {
-      const height = parseInt(searchQuery);
-      if (!isNaN(height)) {
-        const block = blocks.find(b => b.height === height);
-        if (block) {
-          setHighlightedHeight(height);
-          const element = blockRefs.current.get(height);
-          element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        } else {
-          setHighlightedHeight(null);
-        }
-      } else {
-        const block = blocks.find(b => b.hash.toLowerCase().includes(searchQuery.toLowerCase()));
-        if (block) {
-          setHighlightedHeight(block.height);
-          const element = blockRefs.current.get(block.height);
-          element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        } else {
-          setHighlightedHeight(null);
-        }
-      }
-    } else {
-      setHighlightedHeight(null);
+    if (blocksData) {
+      setBlocks(blocksData.map(mapBlock));
     }
-  }, [searchQuery, blocks]);
+  }, [blocksData]);
+
+  // Handle search via API
+  useEffect(() => {
+    const performSearch = async () => {
+      if (!searchQuery) {
+        setHighlightedHeight(null);
+        if (blocksData) setBlocks(blocksData.map(mapBlock));
+        return;
+      }
+
+      try {
+        const results = await dartsiaAPI.searchBlock(searchQuery);
+        if (results && results.length > 0) {
+          // If search returns specific blocks, verify if they are in current list or replace list
+          // For simplicity, we filter current view or fetch specific if not found?
+          // Actually search API returns list matching query.
+          // Let's replace the list with search results for now, or just highlight.
+
+          // Strategy: Update main list to show results
+          setBlocks(results.map(mapBlock));
+
+          // Also highlight if exact match found
+          const height = parseInt(searchQuery);
+          if (!isNaN(height)) {
+            setHighlightedHeight(height);
+            // Scroll if possible...
+          }
+        }
+      } catch (e) {
+        console.error("Search failed", e);
+      }
+    };
+
+    const debounce = setTimeout(performSearch, 500);
+    return () => clearTimeout(debounce);
+  }, [searchQuery, blocksData]);
 
   const formatTimeAgo = (date: Date) => {
     const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
@@ -187,10 +206,10 @@ const BlocksPage = () => {
           <div className="space-y-0">
             {blocks.map((block, index) => {
               const isHighlighted = highlightedHeight === block.height;
-              
+
               return (
-                <div 
-                  key={block.height} 
+                <div
+                  key={block.height}
                   className="relative"
                   ref={(el) => {
                     if (el) blockRefs.current.set(block.height, el);
@@ -199,7 +218,7 @@ const BlocksPage = () => {
                   {index > 0 && (
                     <div className="absolute left-4 -top-4 w-px h-4 bg-border" />
                   )}
-                  
+
                   <div
                     className={cn(
                       'block-node group cursor-pointer',
@@ -212,11 +231,11 @@ const BlocksPage = () => {
                       <div className="flex items-center gap-4">
                         <div className={cn(
                           'w-8 h-8 flex items-center justify-center border',
-                          selectedBlock?.height === block.height 
-                            ? 'border-primary bg-primary/10' 
+                          selectedBlock?.height === block.height
+                            ? 'border-primary bg-primary/10'
                             : isHighlighted
-                            ? 'border-secondary bg-secondary/20'
-                            : 'border-border bg-background'
+                              ? 'border-secondary bg-secondary/20'
+                              : 'border-border bg-background'
                         )}>
                           <span className="text-xs font-mono text-secondary">
                             {(index + 1).toString().padStart(2, '0')}
@@ -238,7 +257,7 @@ const BlocksPage = () => {
                           <span className="text-xs text-foreground-muted">Transactions</span>
                           <span className="font-mono text-sm text-secondary">{block.txCount}</span>
                         </div>
-                        
+
                         <div className="flex flex-col items-end">
                           <span className="text-xs text-foreground-muted">Fees</span>
                           <span className="font-mono text-sm">{block.fees.toFixed(4)} SC</span>
@@ -251,12 +270,12 @@ const BlocksPage = () => {
                           </span>
                         </div>
 
-                        <ArrowRight 
-                          size={16} 
+                        <ArrowRight
+                          size={16}
                           className={cn(
                             'text-foreground-subtle transition-all',
                             'group-hover:text-primary group-hover:translate-x-1'
-                          )} 
+                          )}
                         />
                       </div>
                     </div>
@@ -265,10 +284,14 @@ const BlocksPage = () => {
               );
             })}
           </div>
+
+          {blocks.length === 0 && (
+            <FourSquaresLoader />
+          )}
         </div>
 
         {/* Detail Panel */}
-        <div 
+        <div
           className={cn(
             'w-[400px] border-l border-border bg-background-elevated/80 backdrop-blur-xl',
             'transition-all duration-300 overflow-hidden',
@@ -279,7 +302,7 @@ const BlocksPage = () => {
             <div className="p-6 animate-fade-in">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-semibold">Block Intelligence</h2>
-                <button 
+                <button
                   onClick={() => setSelectedBlock(null)}
                   className="text-foreground-muted hover:text-foreground transition-colors"
                 >
@@ -333,7 +356,52 @@ const BlocksPage = () => {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-foreground-muted">Miner</span>
-                    <span className="font-mono text-foreground-subtle">{selectedBlock.miner}</span>
+                    <span className="font-mono text-foreground-subtle truncate max-w-[180px]">{selectedBlock.miner}</span>
+                  </div>
+                </div>
+
+                {/* Transaction List */}
+                <div className="mt-6">
+                  <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                    <Hash size={14} className="text-secondary" />
+                    Transactions ({selectedBlock.txCount})
+                  </h3>
+                  <div className="space-y-2">
+                    {detailedBlock?.transactions?.map((tx, idx) => (
+                      <div
+                        key={tx.id || idx}
+                        className="border border-border bg-background/50 p-3 rounded text-xs cursor-pointer hover:border-secondary hover:bg-secondary/5 transition-all"
+                        onClick={() => navigate(`/tx/${tx.id}`)}
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="font-mono text-foreground-subtle">TX #{idx + 1}</span>
+                          {tx.type && (
+                            <span className="px-2 py-0.5 bg-secondary/10 text-secondary rounded text-[10px] uppercase">
+                              {tx.type}
+                            </span>
+                          )}
+                        </div>
+                        <div className="font-mono text-[10px] text-foreground-muted break-all mb-2">
+                          {tx.id}
+                        </div>
+                        {tx.siacoin_outputs && tx.siacoin_outputs.length > 0 && (
+                          <div className="text-[10px] text-foreground-subtle">
+                            {tx.siacoin_outputs.length} output(s) • {
+                              (tx.siacoin_outputs.reduce((sum, out) => sum + parseFloat(out.value || '0'), 0) / 1e24).toFixed(4)
+                            } SC
+                          </div>
+                        )}
+                        {tx.miner_fees && tx.miner_fees.length > 0 && (
+                          <div className="text-[10px] text-amber-500">
+                            Fee: {(parseFloat(tx.miner_fees[0]) / 1e24).toFixed(6)} SC
+                          </div>
+                        )}
+                      </div>
+                    )) || (
+                        <div className="text-xs text-foreground-muted text-center py-4">
+                          No transactions available
+                        </div>
+                      )}
                   </div>
                 </div>
               </div>

@@ -12,12 +12,12 @@ interface MetricProps {
 
 const Metric = ({ icon: Icon, label, value, subValue, highlight }: MetricProps) => (
   <div className="flex items-center gap-3">
-    <Icon 
-      size={18} 
+    <Icon
+      size={18}
       className={cn(
         'flex-shrink-0',
         highlight ? 'text-secondary' : 'text-foreground-subtle'
-      )} 
+      )}
     />
     <div className="flex flex-col">
       <span className="text-[10px] uppercase tracking-wider text-foreground-subtle">
@@ -38,17 +38,23 @@ const Metric = ({ icon: Icon, label, value, subValue, highlight }: MetricProps) 
   </div>
 );
 
-export const StatusRail = () => {
-  const [blockHeight, setBlockHeight] = useState(489271);
-  const [blockHash, setBlockHash] = useState('0000000000000000000a8f3c2b1e4d5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4');
+export interface StatusRailProps {
+  blockHeight?: number;
+  blockHash?: string;
+  txCount24h?: number;
+  activeHosts?: number;
+  usedStorage?: number; // in Bytes
+}
 
-  // Simulate live updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setBlockHeight(prev => prev + 1);
-    }, 15000);
-    return () => clearInterval(interval);
-  }, []);
+export const StatusRail = ({
+  blockHeight = 0,
+  blockHash = 'Loading...',
+  txCount24h = 0,
+  activeHosts = 0,
+  usedStorage = 0
+}: StatusRailProps) => {
+
+
 
   return (
     <div className="w-full bg-background-elevated/80 backdrop-blur-sm border-b border-border">
@@ -85,31 +91,31 @@ export const StatusRail = () => {
             </div>
           </div>
 
-          <Metric 
+          <Metric
             icon={Blocks}
             label="Block Height"
             value={blockHeight.toLocaleString()}
             highlight
           />
 
-          <Metric 
+          <Metric
             icon={Activity}
             label="Transactions"
-            value="2,847"
-            subValue="last 24h"
+            value={txCount24h.toLocaleString()}
+            subValue="recent"
           />
 
-          <Metric 
+          <Metric
             icon={Server}
             label="Active Hosts"
-            value="312"
+            value={activeHosts.toLocaleString()}
             highlight
           />
 
-          <Metric 
+          <Metric
             icon={HardDrive}
-            label="Network Storage"
-            value="4.82"
+            label="Used Storage"
+            value={(usedStorage / 1000 / 1000 / 1000 / 1000 / 1000).toFixed(2)} // Bytes -> PB
             subValue="PB"
           />
         </div>

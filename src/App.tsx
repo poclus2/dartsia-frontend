@@ -8,11 +8,8 @@ import { MainLayout } from "./components/layout/MainLayout";
 import Index from "./pages/Index";
 import BlocksPage from "./pages/BlocksPage";
 import TransactionsPage from "./pages/TransactionsPage";
+import TransactionDetailPage from "./pages/TransactionDetailPage";
 import HostsPage from "./pages/HostsPage";
-import AnalyticsPage from "./pages/AnalyticsPage";
-import MapPage from "./pages/MapPage";
-import AlertsPage from "./pages/AlertsPage";
-import ApiPage from "./pages/ApiPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,12 +26,9 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/blocks" element={<BlocksPage />} />
-              <Route path="/transactions" element={<TransactionsPage />} />
+              <Route path="/txs" element={<TransactionsPage />} />
+              <Route path="/tx/:id" element={<TransactionDetailPage />} />
               <Route path="/hosts" element={<HostsPage />} />
-              <Route path="/analytics" element={<AnalyticsPage />} />
-              <Route path="/map" element={<MapPage />} />
-              <Route path="/alerts" element={<AlertsPage />} />
-              <Route path="/api" element={<ApiPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </MainLayout>

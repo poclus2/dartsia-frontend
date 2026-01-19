@@ -5,6 +5,11 @@ import { SearchInput } from '@/components/search/SearchInput';
 import { MobileTransactionRow } from '@/components/mobile/MobileTransactionRow';
 import { MobileBottomSheet } from '@/components/mobile/MobileBottomSheet';
 import { useMobile } from '@/hooks/useMobile';
+import { useRecentTxs } from '@/hooks/useDartsia';
+import { DartsiaTransaction } from '@/types/dartsia';
+import { Link } from 'react-router-dom';
+import { FourSquaresLoader } from '@/components/ui/loaders/FourSquaresLoader';
+
 
 interface Transaction {
   id: string;
@@ -25,21 +30,50 @@ const txTypeConfig = {
   contract_renewal: { label: 'Contract Renewal', color: 'bg-primary/70', textColor: 'text-primary' },
 };
 
-const generateMockTxs = (count: number): Transaction[] => {
-  const types: Transaction['type'][] = ['contract_formation', 'storage_proof', 'transfer', 'host_announcement', 'contract_renewal'];
-  return Array.from({ length: count }, (_, i) => ({
-    id: `${Math.random().toString(36).slice(2, 14)}${Math.random().toString(36).slice(2, 14)}`,
-    type: types[Math.floor(Math.random() * types.length)],
-    blockHeight: 489271 - Math.floor(i / 5),
-    amount: Math.random() * 5000,
-    fee: Math.random() * 0.1,
-    timestamp: new Date(Date.now() - i * 30000),
-    from: `addr_${Math.random().toString(36).slice(2, 10)}`,
-    to: `addr_${Math.random().toString(36).slice(2, 10)}`,
-  }));
+// Map Dartsia tx to UI format
+const mapTransaction = (tx: DartsiaTransaction): Transaction => {
+  let type: Transaction['type'] = 'transfer';
+
+  // Use direct Explorer type if available
+  if (tx.type) {
+    if (tx.type === 'contract_formation') type = 'contract_formation';
+    else if (tx.type === 'contract_renewal' || tx.type === 'contract_revision') type = 'contract_renewal';
+    else if (tx.type === 'storage_proof') type = 'storage_proof';
+    else if (tx.type === 'host_announcement') type = 'host_announcement';
+    else type = 'transfer';
+  } else {
+    // Fallback logic
+    if (tx.host_announcements?.length) type = 'host_announcement';
+    else if (tx.file_contracts?.length) type = 'contract_formation';
+    else if (tx.file_contract_revisions?.length) type = 'contract_renewal';
+    else if (tx.storage_proofs?.length) type = 'storage_proof';
+  }
+
+  // Amounts
+  const amount = tx.siacoin_outputs?.reduce((sum, out) => sum + parseFloat(out.value), 0) || 0;
+  const fee = tx.miner_fees?.reduce((sum, fee) => sum + parseFloat(fee), 0) || 0;
+
+  // From/To addresses (simplified)
+  // Input parent_id doesn't directly give address without lookup. 
+  // We can't easily get 'from' without scanning previous outputs.
+  // For now, use placeholder or first output address as 'to'.
+  const from = 'Multiple Inputs';
+  const to = tx.siacoin_outputs?.[0]?.address || 'Multiple Outputs';
+
+  return {
+    id: tx.id,
+    type,
+    blockHeight: tx.height || 0,
+    amount,
+    fee,
+    timestamp: new Date(), // API might not return timestamp for recent txs endpoint? DartsiaBlock has it.
+    from,
+    to
+  };
 };
 
 const TransactionsPage = () => {
+  const { data: txsData, isLoading } = useRecentTxs(100);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [activeFilters, setActiveFilters] = useState<Set<Transaction['type']>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
@@ -48,8 +82,10 @@ const TransactionsPage = () => {
   const { isMobile } = useMobile();
 
   useEffect(() => {
-    setTransactions(generateMockTxs(100));
-  }, []);
+    if (txsData) {
+      setTransactions(txsData.map(mapTransaction));
+    }
+  }, [txsData]);
 
   const toggleFilter = (type: Transaction['type']) => {
     const newFilters = new Set(activeFilters);
@@ -63,7 +99,7 @@ const TransactionsPage = () => {
 
   const filteredTxs = transactions.filter(tx => {
     const matchesFilter = activeFilters.size === 0 || activeFilters.has(tx.type);
-    const matchesSearch = !searchQuery || 
+    const matchesSearch = !searchQuery ||
       tx.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       tx.from.toLowerCase().includes(searchQuery.toLowerCase()) ||
       tx.to.toLowerCase().includes(searchQuery.toLowerCase());
@@ -110,9 +146,9 @@ const TransactionsPage = () => {
               <MobileTransactionRow
                 key={tx.id}
                 hash={tx.id}
-                type={tx.type === 'contract_formation' ? 'contract' : 
-                      tx.type === 'storage_proof' ? 'storage' :
-                      tx.type === 'transfer' ? 'send' : 'receive'}
+                type={tx.type === 'contract_formation' ? 'contract' :
+                  tx.type === 'storage_proof' ? 'storage' :
+                    tx.type === 'transfer' ? 'send' : 'receive'}
                 amount={tx.amount}
                 timestamp={tx.timestamp}
                 status="confirmed"
@@ -292,9 +328,10 @@ const TransactionsPage = () => {
               {txs.map((tx) => {
                 const config = txTypeConfig[tx.type];
                 const isHighlighted = searchQuery && tx.id.toLowerCase().includes(searchQuery.toLowerCase());
-                
+
                 return (
-                  <div
+                  <Link
+                    to={`/tx/${tx.id}`}
                     key={tx.id}
                     className={cn(
                       "group relative flex items-center gap-4 p-3 bg-background-surface/50 border border-transparent hover:border-border transition-all cursor-pointer",
@@ -302,7 +339,7 @@ const TransactionsPage = () => {
                     )}
                   >
                     <div className={cn('w-1 h-full absolute left-0 top-0', config.color)} />
-                    
+
                     <div className={cn(
                       'px-2 py-0.5 text-[10px] uppercase tracking-wider',
                       config.color,
@@ -335,7 +372,7 @@ const TransactionsPage = () => {
                         {tx.to}
                       </span>
                     </div>
-                  </div>
+                  </Link>
                 );
               })}
             </div>
@@ -343,9 +380,7 @@ const TransactionsPage = () => {
         ))}
 
         {filteredTxs.length === 0 && (
-          <div className="text-center py-12 text-foreground-muted">
-            No transactions match your search
-          </div>
+          <FourSquaresLoader />
         )}
       </div>
     </div>

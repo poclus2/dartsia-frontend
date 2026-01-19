@@ -10,15 +10,7 @@ interface Block {
   fees: number;
 }
 
-const generateMockBlocks = (count: number, startHeight: number): Block[] => {
-  return Array.from({ length: count }, (_, i) => ({
-    height: startHeight - i,
-    txCount: Math.floor(Math.random() * 50) + 5,
-    timestamp: new Date(Date.now() - i * 600000),
-    hash: `000000000000000000${Math.random().toString(16).slice(2, 18)}`,
-    fees: Math.random() * 5,
-  }));
-};
+
 
 const formatTimeAgo = (date: Date) => {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
@@ -32,18 +24,14 @@ const formatTimeAgo = (date: Date) => {
 interface BlockchainTimelineProps {
   onBlockSelect?: (block: Block) => void;
   selectedBlockHeight?: number | null;
+  blocks: Block[];
 }
 
-export const BlockchainTimeline = ({ onBlockSelect, selectedBlockHeight }: BlockchainTimelineProps) => {
-  const [blocks, setBlocks] = useState<Block[]>([]);
+export const BlockchainTimeline = ({ onBlockSelect, selectedBlockHeight, blocks }: BlockchainTimelineProps) => {
   const [hoveredBlock, setHoveredBlock] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [highlightedBlock, setHighlightedBlock] = useState<number | null>(null);
   const blockRefs = useRef<Map<number, HTMLDivElement>>(new Map());
-
-  useEffect(() => {
-    setBlocks(generateMockBlocks(20, 489271));
-  }, []);
 
   // Handle search
   useEffect(() => {
@@ -93,7 +81,7 @@ export const BlockchainTimeline = ({ onBlockSelect, selectedBlockHeight }: Block
       <div className="relative">
         {/* Connection line */}
         <div className="absolute top-1/2 left-0 right-0 h-px bg-border-subtle" />
-        
+
         {/* Blocks */}
         <div className="relative flex items-center gap-1 overflow-x-auto pb-4 scrollbar-thin">
           {blocks.map((block, index) => {
@@ -101,7 +89,7 @@ export const BlockchainTimeline = ({ onBlockSelect, selectedBlockHeight }: Block
             const isHighlighted = highlightedBlock === block.height;
             const isSelected = selectedBlockHeight === block.height;
             const density = Math.min(block.txCount / 50, 1);
-            
+
             return (
               <div
                 key={block.height}
@@ -120,21 +108,21 @@ export const BlockchainTimeline = ({ onBlockSelect, selectedBlockHeight }: Block
                     isSelected
                       ? 'border-primary bg-primary/20 scale-110'
                       : isHighlighted
-                      ? 'border-secondary bg-secondary/30 scale-110 ring-2 ring-secondary/50'
-                      : isHovered
-                      ? 'border-secondary bg-secondary/20 scale-110'
-                      : 'border-border bg-background-surface hover:border-foreground-muted'
+                        ? 'border-secondary bg-secondary/30 scale-110 ring-2 ring-secondary/50'
+                        : isHovered
+                          ? 'border-secondary bg-secondary/20 scale-110'
+                          : 'border-border bg-background-surface hover:border-foreground-muted'
                   )}
                   style={{
                     opacity: 0.5 + density * 0.5,
                   }}
                 >
-                  <div 
+                  <div
                     className={cn(
                       'w-2 h-2 transition-colors',
                       isSelected ? 'bg-primary' :
-                      isHighlighted ? 'bg-secondary' :
-                      isHovered ? 'bg-secondary' : 'bg-foreground-subtle'
+                        isHighlighted ? 'bg-secondary' :
+                          isHovered ? 'bg-secondary' : 'bg-foreground-subtle'
                     )}
                   />
                 </div>
@@ -148,8 +136,8 @@ export const BlockchainTimeline = ({ onBlockSelect, selectedBlockHeight }: Block
                 <span className={cn(
                   'mt-2 font-mono text-[10px] transition-colors',
                   isSelected ? 'text-primary' :
-                  isHighlighted ? 'text-secondary font-semibold' :
-                  isHovered ? 'text-secondary' : 'text-foreground-subtle'
+                    isHighlighted ? 'text-secondary font-semibold' :
+                      isHovered ? 'text-secondary' : 'text-foreground-subtle'
                 )}>
                   {block.height}
                 </span>

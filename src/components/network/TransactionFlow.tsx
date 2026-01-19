@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowRightLeft } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { DartsiaTransaction } from '@/types/dartsia';
 
 interface Transaction {
   id: string;
@@ -15,101 +19,90 @@ const txTypes = {
   host: { label: 'Host', color: 'bg-success' },
 };
 
-const generateMockTxs = (count: number): Transaction[] => {
-  const types: Transaction['type'][] = ['contract', 'storage', 'transfer', 'host'];
-  return Array.from({ length: count }, (_, i) => ({
-    id: `tx_${Math.random().toString(36).slice(2, 10)}`,
-    type: types[Math.floor(Math.random() * types.length)],
-    amount: Math.random() * 1000,
-    timestamp: new Date(Date.now() - i * 30000),
-  }));
+const getTxType = (tx: DartsiaTransaction): Transaction['type'] => {
+  // Use direct Explorer type if available
+  if (tx.type) {
+    if (tx.type.includes('contract')) return 'contract';
+    if (tx.type === 'storage_proof') return 'storage';
+    if (tx.type === 'host_announcement') return 'host';
+    return 'transfer';
+  }
+
+  // Fallback for raw block transactions
+  if (tx.host_announcements?.length) return 'host';
+  if (tx.file_contracts?.length || tx.file_contract_revisions?.length) return 'contract';
+  if (tx.storage_proofs?.length) return 'storage';
+  return 'transfer';
 };
 
-export const TransactionFlow = () => {
+const getTxAmount = (tx: DartsiaTransaction): number => {
+  return tx.siacoin_outputs?.reduce((sum, out) => sum + parseFloat(out.value), 0) || 0;
+};
+
+interface TransactionFlowProps {
+  transactions: DartsiaTransaction[];
+}
+
+export const TransactionFlow = ({ transactions: dartsiaTxs = [] }: TransactionFlowProps) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
   useEffect(() => {
-    setTransactions(generateMockTxs(15));
-
-    // Simulate new transactions
-    const interval = setInterval(() => {
-      setTransactions(prev => {
-        const newTx = generateMockTxs(1)[0];
-        return [newTx, ...prev.slice(0, 14)];
-      });
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, []);
+    const formatted = dartsiaTxs.slice(0, 6).map(tx => ({
+      id: tx.id,
+      type: getTxType(tx),
+      amount: getTxAmount(tx),
+      timestamp: new Date()
+    }));
+    setTransactions(formatted);
+  }, [dartsiaTxs]);
 
   return (
-    <div className="flex-1">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider">
+    <Card className="scan-line h-full">
+      <div className="flex items-center justify-between mb-4 px-6 pt-6">
+        <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider flex items-center gap-2">
           Transaction Flow
         </h2>
-        <div className="flex items-center gap-4">
-          {Object.entries(txTypes).map(([key, { label, color }]) => (
-            <div key={key} className="flex items-center gap-1.5">
-              <div className={cn('w-2 h-2', color)} />
-              <span className="text-[10px] text-foreground-subtle uppercase">{label}</span>
-            </div>
-          ))}
-        </div>
       </div>
-
-      {/* Flow visualization */}
-      <div className="relative space-y-1">
+      <CardContent className="space-y-2 px-3 pb-3">
         {transactions.map((tx, index) => {
-          const config = txTypes[tx.type];
-          const widthPercent = (tx.amount / 1000) * 100;
-          
+          const typeConfig = txTypes[tx.type];
           return (
-            <div
+            <Link
               key={tx.id}
-              className={cn(
-                'group relative h-8 flex items-center gap-3 cursor-pointer',
-                'transition-all duration-200 hover:bg-muted/20'
-              )}
-              style={{
-                animationDelay: `${index * 50}ms`,
-              }}
+              to={`/tx/${tx.id}`}
+              className="block p-3 rounded border border-border hover:border-secondary hover:bg-secondary/5 transition-all animate-slide-in-right"
+              style={{ animationDelay: `${index * 50}ms` }}
             >
-              {/* Flow bar */}
-              <div className="relative flex-1 h-full flex items-center">
-                <div
-                  className={cn(
-                    'h-1.5 transition-all duration-300',
-                    config.color,
-                    'group-hover:h-2'
-                  )}
-                  style={{ width: `${Math.max(widthPercent, 10)}%` }}
-                />
-              </div>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  {/* Color Bar Indicator */}
+                  <div className={cn("w-1 h-8 rounded-full flex-shrink-0", typeConfig.color)} title={typeConfig.label} />
 
-              {/* TX info */}
-              <div className="flex items-center gap-3 min-w-[200px]">
-                <span className="font-mono text-xs text-foreground-muted">
-                  {tx.id}
-                </span>
-                <span className="font-mono text-xs text-secondary">
-                  {tx.amount.toFixed(2)} SC
-                </span>
+                  <div className="flex flex-col min-w-0">
+                    <div className="font-mono-data text-sm text-secondary truncate">
+                      {tx.id}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-foreground-muted mt-1">
+                      <span className={cn("font-medium", typeConfig.color.replace('bg-', 'text-'))}>
+                        {typeConfig.label}
+                      </span>
+                      <span>•</span>
+                      <span className="text-foreground">
+                        {tx.amount.toLocaleString(undefined, { maximumFractionDigits: 1 })} SC
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
-
-              {/* Hover indicator */}
-              <div className={cn(
-                'absolute left-0 top-0 bottom-0 w-0.5 transition-opacity',
-                config.color,
-                'opacity-0 group-hover:opacity-100'
-              )} />
-            </div>
+            </Link>
           );
         })}
-
-        {/* Scan line effect */}
-        <div className="scan-line absolute inset-0 pointer-events-none" />
-      </div>
-    </div>
+        {transactions.length === 0 && (
+          <div className="text-center py-8 text-foreground-muted">
+            No recent transactions
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };

@@ -5,6 +5,9 @@ import { SearchInput } from '@/components/search/SearchInput';
 import { MobileHostRow } from '@/components/mobile/MobileHostRow';
 import { MobileBottomSheet } from '@/components/mobile/MobileBottomSheet';
 import { useMobile } from '@/hooks/useMobile';
+import { useHosts } from '@/hooks/useDartsia';
+import { DartsiaHost } from '@/types/dartsia';
+import { FourSquaresLoader } from '@/components/ui/loaders/FourSquaresLoader';
 
 interface Host {
   id: string;
@@ -19,33 +22,37 @@ interface Host {
   location: string;
   version: string;
   lastSeen: Date;
-  uptimeHistory: number[];
-  priceHistory: number[];
+  // History removed as backend doesn't provide it yet
 }
 
-const generateMockHosts = (count: number): Host[] => {
-  const locations = ['US-East', 'US-West', 'EU-West', 'EU-Central', 'Asia-Pacific', 'South America'];
-  return Array.from({ length: count }, (_, i) => ({
-    id: `host_${Math.random().toString(36).slice(2, 10)}`,
-    address: `${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}:9982`,
-    uptime: Math.random() * 30 + 70,
-    storageUsed: Math.random() * 8,
-    storageTotal: Math.random() * 10 + 5,
-    pricePerTB: Math.random() * 0.003 + 0.001,
-    reliability: Math.random() * 20 + 80,
-    contracts: Math.floor(Math.random() * 500) + 50,
-    successRate: Math.random() * 15 + 85,
-    location: locations[Math.floor(Math.random() * locations.length)],
-    version: '1.5.' + Math.floor(Math.random() * 10),
-    lastSeen: new Date(Date.now() - Math.random() * 3600000),
-    uptimeHistory: Array.from({ length: 30 }, () => Math.random() * 30 + 70),
-    priceHistory: Array.from({ length: 30 }, () => Math.random() * 0.003 + 0.001),
-  }));
+const mapHost = (h: DartsiaHost): Host => {
+  const total = h.totalStorage || h.settings?.totalstorage || 0;
+  const remaining = h.remainingStorage || h.settings?.remainingstorage || 0;
+
+  // Parse storage price (approximate conversion if needed, assuming Hastings/Byte/Block or similar raw unit)
+  // For now using raw value parsed or 0 if string is "0"
+  // Real conversion would depend on backend unit. Assuming backend sends usable value or we use placeholder for now.
+  const price = h.settings?.storageprice ? parseFloat(h.settings.storageprice) : 0;
+
+  return {
+    id: h.publicKey,
+    address: h.netAddress,
+    uptime: 99.9, // Placeholder
+    storageUsed: Math.max(0, total - remaining),
+    storageTotal: total,
+    pricePerTB: price > 0 ? price : 100, // Use parsed or fallback
+    reliability: 98, // Placeholder
+    contracts: 0, // Placeholder
+    successRate: 100, // Placeholder
+    location: 'Global',
+    version: '1.6.0',
+    lastSeen: h.lastScan ? new Date(h.lastScan) : new Date(0),
+  };
 };
 
 const UptimeBar = ({ value }: { value: number }) => (
   <div className="h-1.5 w-24 bg-background flex overflow-hidden">
-    <div 
+    <div
       className={cn(
         'h-full transition-all',
         value >= 95 ? 'bg-success' : value >= 80 ? 'bg-secondary' : 'bg-primary'
@@ -60,7 +67,7 @@ const ScoreIndicator = ({ score, label }: { score: number; label: string }) => (
     <span className="text-[10px] uppercase tracking-wider text-foreground-subtle">{label}</span>
     <div className="flex items-center gap-2">
       <div className="h-1 w-16 bg-background overflow-hidden">
-        <div 
+        <div
           className={cn(
             'h-full',
             score >= 90 ? 'bg-success' : score >= 70 ? 'bg-secondary' : 'bg-primary'
@@ -79,6 +86,7 @@ const ScoreIndicator = ({ score, label }: { score: number; label: string }) => (
 );
 
 const HostsPage = () => {
+  const { data: hostsData, isLoading } = useHosts();
   const [hosts, setHosts] = useState<Host[]>([]);
   const [selectedHost, setSelectedHost] = useState<Host | null>(null);
   const [sortBy, setSortBy] = useState<'uptime' | 'price' | 'reliability' | 'storage'>('reliability');
@@ -87,15 +95,23 @@ const HostsPage = () => {
   const { isMobile } = useMobile();
 
   useEffect(() => {
-    setHosts(generateMockHosts(50));
-  }, []);
+    if (hostsData) {
+      // Filter for active hosts in the last 48 hours
+      const twoDaysAgo = Date.now() - (48 * 60 * 60 * 1000);
+      const activeHosts = hostsData
+        .filter(h => h.lastScan && new Date(h.lastScan).getTime() > twoDaysAgo)
+        .map(mapHost);
+
+      setHosts(activeHosts);
+    }
+  }, [hostsData]);
 
   const filteredAndSortedHosts = useMemo(() => {
     let result = [...hosts];
-    
+
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      result = result.filter(host => 
+      result = result.filter(host =>
         host.id.toLowerCase().includes(query) ||
         host.address.toLowerCase().includes(query) ||
         host.location.toLowerCase().includes(query) ||
@@ -104,7 +120,7 @@ const HostsPage = () => {
         (query === 'reliable' && host.reliability >= 90)
       );
     }
-    
+
     result.sort((a, b) => {
       switch (sortBy) {
         case 'uptime': return b.uptime - a.uptime;
@@ -114,7 +130,7 @@ const HostsPage = () => {
         default: return 0;
       }
     });
-    
+
     return result;
   }, [hosts, searchQuery, sortBy]);
 
@@ -203,15 +219,15 @@ const HostsPage = () => {
                 <div className="flex items-center gap-3 mb-4">
                   <div className={cn(
                     'w-3 h-3 rounded-full',
-                    selectedHost.uptime >= 95 ? 'bg-success' : 
-                    selectedHost.uptime >= 80 ? 'bg-secondary' : 'bg-primary'
+                    selectedHost.uptime >= 95 ? 'bg-success' :
+                      selectedHost.uptime >= 80 ? 'bg-secondary' : 'bg-primary'
                   )} />
                   <div>
                     <div className="font-mono text-sm">{selectedHost.id}</div>
                     <div className="text-[10px] text-foreground-muted">{selectedHost.address}</div>
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-3">
                   <ScoreIndicator score={selectedHost.uptime} label="Uptime" />
                   <ScoreIndicator score={selectedHost.reliability} label="Reliability" />
@@ -220,92 +236,7 @@ const HostsPage = () => {
                 </div>
               </div>
 
-              {/* Uptime History */}
-              <div className="p-4 border-b border-border-subtle">
-                <h3 className="text-xs font-semibold mb-3 flex items-center gap-2">
-                  <Wifi size={12} className="text-success" />
-                  Uptime History (30 days)
-                </h3>
-                <div className="flex items-end gap-px h-12">
-                  {selectedHost.uptimeHistory.map((uptime, i) => (
-                    <div
-                      key={i}
-                      className={cn(
-                        'flex-1 transition-all',
-                        uptime >= 95 ? 'bg-success' : uptime >= 80 ? 'bg-secondary' : 'bg-primary'
-                      )}
-                      style={{ height: `${uptime}%` }}
-                    />
-                  ))}
-                </div>
-              </div>
 
-              {/* Contract Stats */}
-              <div className="p-4 border-b border-border-subtle">
-                <h3 className="text-xs font-semibold mb-3 flex items-center gap-2">
-                  <HardDrive size={12} className="text-secondary" />
-                  Contract Performance
-                </h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-muted/30 p-3">
-                    <span className="text-[9px] uppercase tracking-wider text-foreground-subtle block mb-1">
-                      Active Contracts
-                    </span>
-                    <span className="font-mono text-lg text-secondary">{selectedHost.contracts}</span>
-                  </div>
-                  <div className="bg-muted/30 p-3">
-                    <span className="text-[9px] uppercase tracking-wider text-foreground-subtle block mb-1">
-                      Success Rate
-                    </span>
-                    <span className={cn(
-                      'font-mono text-lg',
-                      selectedHost.successRate >= 95 ? 'text-success' : 'text-foreground'
-                    )}>
-                      {selectedHost.successRate.toFixed(1)}%
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Price */}
-              <div className="p-4">
-                <h3 className="text-xs font-semibold mb-3 flex items-center gap-2">
-                  <DollarSign size={12} className="text-secondary" />
-                  Price Trend
-                </h3>
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="font-mono text-xl text-secondary">
-                    ${selectedHost.pricePerTB.toFixed(4)}
-                  </span>
-                  <span className="text-xs text-foreground-muted">/TB/mo</span>
-                  {selectedHost.priceHistory[29] > selectedHost.priceHistory[0] ? (
-                    <div className="flex items-center gap-1 text-primary">
-                      <TrendingUp size={12} />
-                      <span className="text-xs">+{((selectedHost.priceHistory[29] - selectedHost.priceHistory[0]) / selectedHost.priceHistory[0] * 100).toFixed(1)}%</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1 text-success">
-                      <TrendingDown size={12} />
-                      <span className="text-xs">{((selectedHost.priceHistory[29] - selectedHost.priceHistory[0]) / selectedHost.priceHistory[0] * 100).toFixed(1)}%</span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-end gap-px h-10">
-                  {selectedHost.priceHistory.map((price, i) => {
-                    const maxPrice = Math.max(...selectedHost.priceHistory);
-                    const minPrice = Math.min(...selectedHost.priceHistory);
-                    const range = maxPrice - minPrice || 1;
-                    const height = ((price - minPrice) / range) * 100;
-                    return (
-                      <div
-                        key={i}
-                        className="flex-1 bg-secondary/60"
-                        style={{ height: `${Math.max(height, 5)}%` }}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
             </div>
           )}
         </MobileBottomSheet>
@@ -336,8 +267,8 @@ const HostsPage = () => {
                 onClick={() => setSortBy(option)}
                 className={cn(
                   'text-xs font-medium px-2 py-1 transition-colors',
-                  sortBy === option 
-                    ? 'text-secondary border-b border-secondary' 
+                  sortBy === option
+                    ? 'text-secondary border-b border-secondary'
                     : 'text-foreground-muted hover:text-foreground'
                 )}
               >
@@ -381,8 +312,8 @@ const HostsPage = () => {
                 <div className="flex items-center gap-3 min-w-[200px]">
                   <div className={cn(
                     'status-dot',
-                    host.uptime >= 95 ? 'status-dot-live' : 
-                    host.uptime >= 80 ? 'bg-secondary' : 'bg-primary'
+                    host.uptime >= 95 ? 'status-dot-live' :
+                      host.uptime >= 80 ? 'bg-secondary' : 'bg-primary'
                   )} />
                   <div className="flex flex-col">
                     <span className="font-mono text-sm">{host.id}</span>
@@ -402,7 +333,7 @@ const HostsPage = () => {
                   <span className="text-[10px] text-foreground-subtle uppercase tracking-wider">Storage</span>
                   <div className="flex items-center gap-2">
                     <div className="h-1.5 w-20 bg-background overflow-hidden">
-                      <div 
+                      <div
                         className="h-full bg-secondary"
                         style={{ width: `${(host.storageUsed / host.storageTotal) * 100}%` }}
                       />
@@ -424,8 +355,8 @@ const HostsPage = () => {
                   <span className="text-[10px] text-foreground-subtle uppercase tracking-wider">Score</span>
                   <span className={cn(
                     'font-mono text-sm font-semibold',
-                    host.reliability >= 90 ? 'text-success' : 
-                    host.reliability >= 70 ? 'text-secondary' : 'text-primary'
+                    host.reliability >= 90 ? 'text-success' :
+                      host.reliability >= 70 ? 'text-secondary' : 'text-primary'
                   )}>
                     {host.reliability.toFixed(0)}
                   </span>
@@ -436,24 +367,22 @@ const HostsPage = () => {
                   <span className="text-xs text-foreground-muted">{host.location}</span>
                 </div>
 
-                <ArrowUpRight 
-                  size={16} 
-                  className="text-foreground-subtle ml-auto group-hover:text-primary transition-colors" 
+                <ArrowUpRight
+                  size={16}
+                  className="text-foreground-subtle ml-auto group-hover:text-primary transition-colors"
                 />
               </div>
             </div>
           ))}
 
           {filteredAndSortedHosts.length === 0 && (
-            <div className="text-center py-12 text-foreground-muted">
-              No hosts match your search
-            </div>
+            <FourSquaresLoader />
           )}
         </div>
       </div>
 
       {/* Desktop Detail Panel */}
-      <div 
+      <div
         className={cn(
           'fixed right-0 top-0 h-screen w-[450px] bg-background-elevated/95 backdrop-blur-xl',
           'border-l border-border transition-transform duration-300 z-40 overflow-y-auto',
@@ -466,15 +395,15 @@ const HostsPage = () => {
               <div className="flex items-center gap-3">
                 <div className={cn(
                   'w-3 h-3 rounded-full',
-                  selectedHost.uptime >= 95 ? 'bg-success glow-success' : 
-                  selectedHost.uptime >= 80 ? 'bg-secondary' : 'bg-primary'
+                  selectedHost.uptime >= 95 ? 'bg-success glow-success' :
+                    selectedHost.uptime >= 80 ? 'bg-secondary' : 'bg-primary'
                 )} />
                 <div>
                   <h2 className="font-mono text-lg">{selectedHost.id}</h2>
                   <span className="text-xs text-foreground-muted">{selectedHost.address}</span>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setSelectedHost(null)}
                 className="p-2 hover:bg-muted/30 transition-colors"
               >
@@ -495,94 +424,7 @@ const HostsPage = () => {
               </div>
             </div>
 
-            <div className="p-6 border-b border-border-subtle">
-              <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
-                <Wifi size={14} className="text-success" />
-                Uptime History (30 days)
-              </h3>
-              <div className="flex items-end gap-px h-16">
-                {selectedHost.uptimeHistory.map((uptime, i) => (
-                  <div
-                    key={i}
-                    className={cn(
-                      'flex-1 transition-all',
-                      uptime >= 95 ? 'bg-success' : uptime >= 80 ? 'bg-secondary' : 'bg-primary'
-                    )}
-                    style={{ height: `${uptime}%` }}
-                    title={`Day ${i + 1}: ${uptime.toFixed(1)}%`}
-                  />
-                ))}
-              </div>
-              <div className="flex justify-between mt-2 text-[10px] text-foreground-subtle">
-                <span>30 days ago</span>
-                <span>Today</span>
-              </div>
-            </div>
 
-            <div className="p-6 border-b border-border-subtle">
-              <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
-                <HardDrive size={14} className="text-secondary" />
-                Contract Performance
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="metric-card">
-                  <span className="text-[10px] uppercase tracking-wider text-foreground-subtle">
-                    Active Contracts
-                  </span>
-                  <span className="font-mono text-xl text-secondary">{selectedHost.contracts}</span>
-                </div>
-                <div className="metric-card">
-                  <span className="text-[10px] uppercase tracking-wider text-foreground-subtle">
-                    Success Rate
-                  </span>
-                  <span className={cn(
-                    'font-mono text-xl',
-                    selectedHost.successRate >= 95 ? 'text-success' : 'text-foreground'
-                  )}>
-                    {selectedHost.successRate.toFixed(1)}%
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6">
-              <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
-                <DollarSign size={14} className="text-secondary" />
-                Price Trend
-              </h3>
-              <div className="flex items-center gap-3 mb-4">
-                <span className="font-mono text-2xl text-secondary">
-                  ${selectedHost.pricePerTB.toFixed(4)}
-                </span>
-                <span className="text-sm text-foreground-muted">/TB/month</span>
-                {selectedHost.priceHistory[29] > selectedHost.priceHistory[0] ? (
-                  <div className="flex items-center gap-1 text-primary">
-                    <TrendingUp size={14} />
-                    <span className="text-xs">+{((selectedHost.priceHistory[29] - selectedHost.priceHistory[0]) / selectedHost.priceHistory[0] * 100).toFixed(1)}%</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1 text-success">
-                    <TrendingDown size={14} />
-                    <span className="text-xs">{((selectedHost.priceHistory[29] - selectedHost.priceHistory[0]) / selectedHost.priceHistory[0] * 100).toFixed(1)}%</span>
-                  </div>
-                )}
-              </div>
-              <div className="flex items-end gap-px h-12">
-                {selectedHost.priceHistory.map((price, i) => {
-                  const maxPrice = Math.max(...selectedHost.priceHistory);
-                  const minPrice = Math.min(...selectedHost.priceHistory);
-                  const range = maxPrice - minPrice || 1;
-                  const height = ((price - minPrice) / range) * 100;
-                  return (
-                    <div
-                      key={i}
-                      className="flex-1 bg-secondary/60 hover:bg-secondary transition-colors"
-                      style={{ height: `${Math.max(height, 5)}%` }}
-                    />
-                  );
-                })}
-              </div>
-            </div>
           </div>
         )}
       </div>

@@ -1,0 +1,114 @@
+{
+    "id":  "130b9e86aec2b3f14b7e615850012db81ebe7affa3d297cc411ffad7a2de5016",
+    "minerFee":  "20000000000000000000000",
+    "siacoinInputs":  [
+                          {
+                              "parent":  {
+                                             "id":  "a6fd3de51e08f30930f910401b2c5c25b82bab164be1f10cc28a171ec03811b8",
+                                             "stateElement":  {
+                                                                  "leafIndex":  74732539
+                                                              },
+                                             "siacoinOutput":  {
+                                                                   "value":  "15537690676251471468074827313",
+                                                                   "address":  "857bacc1741b8d262bcef3cbcf2838ccef727c4ce8b696da1fe27bb3157b06a52a301c1fbf09"
+                                                               },
+                                             "maturityHeight":  0
+                                         },
+                              "satisfiedPolicy":  {
+                                                      "policy":  {
+                                                                     "type":  "uc",
+                                                                     "policy":  {
+                                                                                    "timelock":  0,
+                                                                                    "publicKeys":  [
+                                                                                                       "ed25519:3fa84ec807eacbde617988f7b9e8bcb552d64b8dfd94b49bb047983afad09e31"
+                                                                                                   ],
+                                                                                    "signaturesRequired":  1
+                                                                                }
+                                                                 },
+                                                      "signatures":  [
+                                                                         "309ebb1810ed93b664fa96bb7d7d942dd5fd5b3bcfc7fa1994c5814f7715818d7f0f861ceb3b8731ba2c7c6b400bea71342dfca2e7a9d7ea8826fc20dbf46300"
+                                                                     ]
+                                                  }
+                          }
+                      ],
+    "siacoinOutputs":  [
+                           {
+                               "id":  "b46bfd16afaff2233a80c045164294b570daee3502ca418b9614f6cac3549656",
+                               "source":  "transaction",
+                               "spentIndex":  null,
+                               "stateElement":  {
+                                                    "leafIndex":  74741459
+                                                },
+                               "siacoinOutput":  {
+                                                     "value":  "15537670676251471468074827313",
+                                                     "address":  "857bacc1741b8d262bcef3cbcf2838ccef727c4ce8b696da1fe27bb3157b06a52a301c1fbf09"
+                                                 },
+                               "maturityHeight":  0
+                           }
+                       ],
+    "fileContractResolutions":  [
+                                    {
+                                        "type":  "storage_proof",
+                                        "parent":  {
+                                                       "id":  "c007e4d9a0328562207f401396940eb078317ac77443f3fd3dfc590a797fac6b",
+                                                       "renewedTo":  null,
+                                                       "renewedFrom":  null,
+                                                       "stateElement":  {
+                                                                            "leafIndex":  74688102
+                                                                        },
+                                                       "transactionID":  "f93b3054ff2c9f3e65229bd9a8929ba34c1a310f2bc62fc8d454150a1ac8a492",
+                                                       "resolutionType":  "storage_proof",
+                                                       "v2FileContract":  {
+                                                                              "capacity":  0,
+                                                                              "filesize":  0,
+                                                                              "hostOutput":  {
+                                                                                                 "value":  "4953281045665005388693504",
+                                                                                                 "address":  "857bacc1741b8d262bcef3cbcf2838ccef727c4ce8b696da1fe27bb3157b06a52a301c1fbf09"
+                                                                                             },
+                                                                              "proofHeight":  558515,
+                                                                              "renterOutput":  {
+                                                                                                   "value":  "9604455696412498630541312",
+                                                                                                   "address":  "cfe1e1d02a45d91d2e5936c27a81c391ed8d9b68b359e3c8e0fafa6bbf0803625ed71603ca10"
+                                                                                               },
+                                                                              "hostPublicKey":  "ed25519:39e40667db6bd5c781aee104caae0ed8216d544bfd348e6f365cf30c846a5365",
+                                                                              "hostSignature":  "8b03dea99f8877fa68fa9429d69f83123a1acda5c154203f6ec3e6362e15216ea09a1700d72ed59d1322a9363f6fbbcd9e635bcb6060830b7992651a00333802",
+                                                                              "fileMerkleRoot":  "0000000000000000000000000000000000000000000000000000000000000000",
+                                                                              "revisionNumber":  28,
+                                                                              "missedHostValue":  "0",
+                                                                              "renterPublicKey":  "ed25519:4c792cde25e523b170db9b76e386e03fc5fae24825283ed368276365481913ae",
+                                                                              "renterSignature":  "31f84a9bd0cdd8847fa0d072f03ad6dc9e7e2a7cadc9d70bac73a75250ab6dc71f558ca1e92480088ba07fa72751759a8da38dd0c192899a1540d23046386f03",
+                                                                              "totalCollateral":  "0",
+                                                                              "expirationHeight":  558659
+                                                                          },
+                                                       "resolutionIndex":  {
+                                                                               "id":  "00000000000000000a0321676354f3cd93f81d3416a0fbda7a26694e8f11ef80",
+                                                                               "height":  558516
+                                                                           },
+                                                       "confirmationIndex":  {
+                                                                                 "id":  "000000000000000158781110ca522cb799a49e8b19a704be25cbf5741e3614d5",
+                                                                                 "height":  557508
+                                                                             },
+                                                       "resolutionTransactionID":  "130b9e86aec2b3f14b7e615850012db81ebe7affa3d297cc411ffad7a2de5016",
+                                                       "confirmationTransactionID":  "cbb0f3f47632dc8850ecae0e86feb753eeb29f8e94c997fc76f000eb5d453666"
+                                                   },
+                                        "resolution":  {
+                                                           "leaf":  "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                                                           "proof":  [
+
+                                                                     ],
+                                                           "proofIndex":  {
+                                                                              "id":  "0000000000000001ca19513c1d686dd0986072a1072870e05c55f55984c03c14",
+                                                                              "chainIndex":  {
+                                                                                                 "id":  "0000000000000001ca19513c1d686dd0986072a1072870e05c55f55984c03c14",
+                                                                                                 "height":  558515
+                                                                                             },
+                                                                              "stateElement":  {
+                                                                                                   "leafIndex":  74741458
+                                                                                               }
+                                                                          }
+                                                       }
+                                    }
+                                ],
+    "height":  558516,
+    "timestamp":  "2026-01-18T09:20:39.000Z"
+}

@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { 
-  Activity, 
-  Blocks, 
-  ArrowLeftRight, 
-  Server, 
-  BarChart3, 
-  Globe, 
-  AlertTriangle, 
+import {
+  Activity,
+  Blocks,
+  ArrowLeftRight,
+  Server,
+  BarChart3,
+  Globe,
+  AlertTriangle,
   Code,
   ChevronLeft,
   ChevronRight
@@ -18,12 +18,8 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 const navItems = [
   { path: '/', label: 'Network', icon: Activity },
   { path: '/blocks', label: 'Blocks', icon: Blocks },
-  { path: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
+  { path: '/txs', label: 'Transactions', icon: ArrowLeftRight },
   { path: '/hosts', label: 'Hosts', icon: Server },
-  { path: '/analytics', label: 'Analytics', icon: BarChart3 },
-  { path: '/map', label: 'Map', icon: Globe },
-  { path: '/alerts', label: 'Alerts', icon: AlertTriangle },
-  { path: '/api', label: 'API', icon: Code },
 ];
 
 export const Sidebar = () => {
@@ -59,7 +55,7 @@ export const Sidebar = () => {
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             const Icon = item.icon;
-            
+
             return (
               <li key={item.path}>
                 <NavLink
@@ -70,12 +66,12 @@ export const Sidebar = () => {
                     collapsed ? 'justify-center px-0' : ''
                   )}
                 >
-                  <Icon 
-                    size={20} 
+                  <Icon
+                    size={20}
                     className={cn(
                       'flex-shrink-0 transition-colors',
                       isActive ? 'text-primary' : 'text-foreground-muted group-hover:text-secondary'
-                    )} 
+                    )}
                   />
                   {!collapsed && (
                     <span className="text-sm font-medium">{item.label}</span>

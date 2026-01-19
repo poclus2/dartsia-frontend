@@ -7,29 +7,37 @@ import { BlockDetailPanel } from '@/components/network/BlockDetailPanel';
 import { MobileBlockCard } from '@/components/mobile/MobileBlockCard';
 import { MobileBottomSheet } from '@/components/mobile/MobileBottomSheet';
 import { useMobile } from '@/hooks/useMobile';
-import { Activity, Box, ArrowRightLeft } from 'lucide-react';
+import { Activity, Box } from 'lucide-react';
+import { useBlocks, useBlockStats, useRecentTxs, useHosts, useNetworkStats } from '@/hooks/useDartsia';
+import { DartsiaBlock } from '@/types/dartsia';
 
-interface Block {
-  height: number;
-  txCount: number;
-  timestamp: Date;
-  hash: string;
-  fees: number;
-}
-
-// Mock recent blocks for mobile
-const recentBlocks: Block[] = Array.from({ length: 10 }, (_, i) => ({
-  height: 234567 - i,
-  txCount: Math.floor(Math.random() * 50) + 5,
-  timestamp: new Date(Date.now() - i * 120000),
-  hash: `0x${Math.random().toString(16).slice(2)}${Math.random().toString(16).slice(2)}`.slice(0, 66),
-  fees: Math.random() * 0.5,
-}));
+// Adapter helper for components expecting "Block" interface
+const adaptBlock = (dBlock: DartsiaBlock) => ({
+  height: dBlock.height,
+  txCount: dBlock.transactions?.length || 0,
+  timestamp: new Date(dBlock.timestamp),
+  hash: dBlock.id,
+  fees: dBlock.transactions?.reduce((acc, tx) =>
+    acc + (tx.miner_fees?.reduce((feeSum, fee) => feeSum + parseFloat(fee), 0) || 0)
+    , 0) || 0
+});
 
 const Index = () => {
-  const [selectedBlock, setSelectedBlock] = useState<Block | null>(null);
+  const { data: blocksData, isLoading: blocksLoading } = useBlocks(1, 20);
+  const { data: statsData } = useBlockStats();
+  const { data: txsData } = useRecentTxs(15);
+  const { data: hostsData } = useHosts();
+  const { data: networkStats } = useNetworkStats();
+
+  const [selectedBlock, setSelectedBlock] = useState<any | null>(null); // Using any temporarily for mapped block
   const { isMobile } = useMobile();
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const adaptedBlocks = blocksData?.map(adaptBlock) || [];
+  const activeHostsCount = hostsData?.length || 0;
+
+  // Parse usedStorage from network stats (string -> number)
+  const usedStorage = networkStats ? Number(networkStats.usedStorage) : 0;
 
   // Mobile view
   if (isMobile) {
@@ -43,13 +51,13 @@ const Index = () => {
               Network Activity
             </span>
           </div>
-          
+
           {/* Horizontal scrollable block timeline */}
-          <div 
+          <div
             ref={scrollRef}
             className="flex overflow-x-auto scrollbar-hide px-3 pb-3"
           >
-            {recentBlocks.map((block) => (
+            {adaptedBlocks.map((block) => (
               <MobileBlockCard
                 key={block.height}
                 {...block}
@@ -73,9 +81,9 @@ const Index = () => {
               Tap to view details
             </span>
           </div>
-          
+
           <div className="divide-y divide-border">
-            {recentBlocks.slice(0, 5).map((block) => (
+            {adaptedBlocks.slice(0, 5).map((block) => (
               <MobileBlockCard
                 key={block.height}
                 {...block}
@@ -93,15 +101,15 @@ const Index = () => {
                 Avg Block Time
               </div>
               <div className="text-lg font-mono font-medium text-secondary">
-                10.2<span className="text-xs text-foreground-muted">min</span>
+                {statsData?.avgBlockTime || '10m'}<span className="text-xs text-foreground-muted"></span>
               </div>
             </div>
             <div className="bg-muted/30 border border-border p-3">
               <div className="text-[9px] uppercase tracking-wider text-foreground-subtle mb-1">
-                Pending Txns
+                Active Hosts
               </div>
               <div className="text-lg font-mono font-medium">
-                24
+                {activeHostsCount}
               </div>
             </div>
           </div>
@@ -150,7 +158,7 @@ const Index = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div>
                 <div className="text-[9px] uppercase tracking-wider text-foreground-subtle mb-1">
                   Block Hash
@@ -166,20 +174,30 @@ const Index = () => {
     );
   }
 
-  // Desktop view (existing)
+  // Desktop view
   return (
     <div className="min-h-screen flex flex-col">
-      <StatusRail />
+      <StatusRail
+        blockHeight={adaptedBlocks[0]?.height}
+        blockHash={adaptedBlocks[0]?.hash}
+        txCount24h={txsData?.length || 0}
+        activeHosts={activeHostsCount}
+        usedStorage={usedStorage}
+      />
       <div className="flex-1 p-6">
+        <div className="mb-6">
+          <NetworkMetrics />
+        </div>
         <div className="grid grid-cols-5 gap-6 mb-6">
           <div className="col-span-3 bg-background-elevated/30 border border-border p-4">
-            <BlockchainTimeline 
+            <BlockchainTimeline
+              blocks={adaptedBlocks}
               onBlockSelect={setSelectedBlock}
               selectedBlockHeight={selectedBlock?.height}
             />
             {selectedBlock && (
               <div className="mt-4 border-t border-border-subtle pt-4">
-                <BlockDetailPanel 
+                <BlockDetailPanel
                   block={selectedBlock}
                   onClose={() => setSelectedBlock(null)}
                 />
@@ -187,10 +205,9 @@ const Index = () => {
             )}
           </div>
           <div className="col-span-2 bg-background-elevated/30 border border-border p-4">
-            <TransactionFlow />
+            <TransactionFlow transactions={txsData || []} />
           </div>
         </div>
-        <NetworkMetrics />
       </div>
     </div>
   );

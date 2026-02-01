@@ -46,6 +46,7 @@ export interface DartsiaHost {
     remainingStorage?: number;
     acceptingContracts?: boolean;
     lastScan?: string;
+    lastSeen?: string;  // API returns this field
     settings?: {
         storageprice?: string;
         totalstorage?: number;

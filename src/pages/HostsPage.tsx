@@ -46,7 +46,7 @@ const mapHost = (h: DartsiaHost): Host => {
     successRate: 100, // Placeholder
     location: 'Global',
     version: '1.6.0',
-    lastSeen: h.lastScan ? new Date(h.lastScan) : new Date(0),
+    lastSeen: h.lastSeen ? new Date(h.lastSeen) : new Date(0),
   };
 };
 

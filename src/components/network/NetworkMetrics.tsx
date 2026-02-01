@@ -94,7 +94,7 @@ export const NetworkMetrics = () => {
           trend: 'up'
         },
         hosts: {
-          value: stats.activeHosts,  // Use activeHosts (7d filter) for Network Intelligence
+          value: stats.activeHosts,  // Use activeHosts (48h filter) for Network Intelligence
           change: 1.2,
           trend: 'up'
         },

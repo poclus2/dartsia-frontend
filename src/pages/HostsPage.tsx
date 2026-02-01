@@ -96,10 +96,10 @@ const HostsPage = () => {
 
   useEffect(() => {
     if (hostsData) {
-      // Filter for hosts with recent activity (7 days) or newly synced (no lastScan yet)
-      const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+      // Filter for hosts with recent activity (48 hours) - matches backend "active" definition
+      const twoDaysAgo = Date.now() - (48 * 60 * 60 * 1000);
       const activeHosts = hostsData
-        .filter(h => !h.lastScan || new Date(h.lastScan).getTime() > sevenDaysAgo)
+        .filter(h => h.lastScan && new Date(h.lastScan).getTime() > twoDaysAgo)
         .map(mapHost);
 
       setHosts(activeHosts);

@@ -34,7 +34,9 @@ const Index = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const adaptedBlocks = blocksData?.map(adaptBlock) || [];
-  const activeHostsCount = hostsData?.length || 0;
+
+  // StatusRail shows TOTAL scanned hosts
+  const totalScannedHosts = networkStats?.totalHosts || 0;
 
   // Parse usedStorage from network stats (string -> number)
   const usedStorage = networkStats ? Number(networkStats.usedStorage) : 0;
@@ -181,7 +183,7 @@ const Index = () => {
         blockHeight={adaptedBlocks[0]?.height}
         blockHash={adaptedBlocks[0]?.hash}
         txCount24h={txsData?.length || 0}
-        activeHosts={activeHostsCount}
+        activeHosts={totalScannedHosts}
         usedStorage={usedStorage}
       />
       <div className="flex-1 p-6">

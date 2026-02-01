@@ -94,8 +94,8 @@ export const NetworkMetrics = () => {
           trend: 'up'
         },
         hosts: {
-          value: stats.totalHosts,  // Use totalHosts from DB instead of activeHosts from API
-          change: 1.2, // Placeholder change
+          value: stats.activeHosts,  // Use activeHosts (7d filter) for Network Intelligence
+          change: 1.2,
           trend: 'up'
         },
         avgPrice: {

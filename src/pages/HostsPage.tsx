@@ -97,9 +97,14 @@ const HostsPage = () => {
   useEffect(() => {
     if (hostsData) {
       // Filter for hosts with recent activity (48 hours) - matches backend "active" definition
+      // API returns "lastSeen", not "lastScan"
       const twoDaysAgo = Date.now() - (48 * 60 * 60 * 1000);
       const activeHosts = hostsData
-        .filter(h => h.lastScan && new Date(h.lastScan).getTime() > twoDaysAgo)
+        .filter(h => {
+          // Skip hosts with epoch 0 date (1970-01-01) - indicates no scan data
+          if (!h.lastSeen || h.lastSeen === '1970-01-01T00:00:00.000Z') return false;
+          return new Date(h.lastSeen).getTime() > twoDaysAgo;
+        })
         .map(mapHost);
 
       setHosts(activeHosts);

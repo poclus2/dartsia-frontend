@@ -18,8 +18,9 @@ services:
           cpus: '0.5'
           memory: 256M
     networks:
-      - frontend-network
+      - siafrench-network
 
 networks:
-  frontend-network:
-    driver: bridge
+  siafrench-network:
+    external: true
+    name: dartsia-backend_siafrench-network

@@ -182,7 +182,7 @@ export const NetworkMetrics = () => {
         <div className="chart-container">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[10px] uppercase tracking-wider text-foreground-subtle">
-              Total Hosts
+              Active Hosts
             </span>
             <div className="flex items-center gap-1">
               <TrendIcon trend={metrics.hosts.trend} />

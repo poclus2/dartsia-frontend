@@ -60,9 +60,12 @@ jobs:
           username: ${{ secrets.DO_USER }}
           password: ${{ secrets.DO_PASSWORD }}
           script: |
-            cd /opt/siafrench-frontend
+            cd /opt/siafrench-frontend/dartsia-frontend
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
+            # Ensure latest config
+            git pull origin main
+
             # Update docker-compose with new image
             export GITHUB_REPOSITORY=${{ github.repository }}
             

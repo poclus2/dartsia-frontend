@@ -94,7 +94,7 @@ export const NetworkMetrics = () => {
           trend: 'up'
         },
         hosts: {
-          value: stats.activeHosts,
+          value: stats.totalHosts,  // Use totalHosts from DB instead of activeHosts from API
           change: 1.2, // Placeholder change
           trend: 'up'
         },
@@ -182,7 +182,7 @@ export const NetworkMetrics = () => {
         <div className="chart-container">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[10px] uppercase tracking-wider text-foreground-subtle">
-              Active Hosts
+              Total Hosts
             </span>
             <div className="flex items-center gap-1">
               <TrendIcon trend={metrics.hosts.trend} />

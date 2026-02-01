@@ -39,11 +39,11 @@ export const Sidebar = () => {
       <div className="h-16 flex items-center justify-center border-b border-sidebar-border">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-secondary flex items-center justify-center">
-            <span className="text-secondary-foreground font-bold text-lg">S</span>
+            <span className="text-secondary-foreground font-bold text-lg">D</span>
           </div>
           {!collapsed && (
             <span className="font-semibold text-foreground tracking-tight">
-              SIA<span className="text-secondary">SCAN</span>
+              DART<span className="text-secondary">SIA</span>
             </span>
           )}
         </div>

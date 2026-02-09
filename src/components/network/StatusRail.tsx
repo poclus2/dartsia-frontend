@@ -107,7 +107,7 @@ export const StatusRail = ({
 
           <Metric
             icon={Server}
-            label="Active Hosts"
+            label="Total Hosts"
             value={activeHosts.toLocaleString()}
             highlight
           />

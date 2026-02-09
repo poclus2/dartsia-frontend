@@ -64,6 +64,10 @@ export interface DartsiaHost {
         remainingStorage?: number;
         acceptingContracts?: boolean;
     };
+    totalUptime?: string; // New field from backend
+    uptimeHours?: string; // New field from backend
+    score?: number;
+    countryCode?: string;
 }
 
 export interface BlockStats {

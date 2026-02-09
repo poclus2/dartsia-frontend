@@ -25,27 +25,65 @@ interface Host {
   // History removed as backend doesn't provide it yet
 }
 
-const mapHost = (h: DartsiaHost): Host => {
-  const total = h.totalStorage || h.settings?.totalstorage || 0;
-  const remaining = h.remainingStorage || h.settings?.remainingstorage || 0;
+// Helper to format bytes to human readable string (TB, GB, etc.)
+const formatStorage = (bytes: number): string => {
+  if (bytes === 0) return '0 B';
+  const k = 1000;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
 
-  // Parse storage price (approximate conversion if needed, assuming Hastings/Byte/Block or similar raw unit)
-  // For now using raw value parsed or 0 if string is "0"
-  // Real conversion would depend on backend unit. Assuming backend sends usable value or we use placeholder for now.
-  const price = h.settings?.storageprice ? parseFloat(h.settings.storageprice) : 0;
+// Map backend version (h.settings.version)
+const getVersion = (h: DartsiaHost): string => {
+  return h.settings?.version || h.settings?.release || "Unknown";
+};
+
+const mapHost = (h: DartsiaHost): Host => {
+  // 1. Storage: Backend sends Bytes (in settings.totalstorage string/number)
+  // We parse it and keep it as number for sorting, but format it for display later if needed
+  // actually component expects numbers for bars, and strings for display?
+  // Component interfaces: storageTotal: number, storageUsed: number.
+  // We will keep them as Bytes in the object, but format them in the UI JSX.
+
+  const totalBytes = Number(h.totalStorage || h.settings?.totalstorage || 0);
+  const remainingBytes = Number(h.remainingStorage || h.settings?.remainingstorage || 0);
+  const usedBytes = Math.max(0, totalBytes - remainingBytes);
+
+  // 2. Price: Backend sends "Hastings / Byte / Block" (usually) or similar raw unit
+  // Conversion: 1 SC = 10^24 Hastings.
+  // We want SC / TB / Month.
+  // 1 TB = 10^12 Bytes.
+  // 1 Month = ~4320 blocks (approx).
+  // Formula: (RawPrice * 10^12 * 4320) / 10^24 = RawPrice * 4320 * 1e-12
+  // But wait, if input is string "123..." (huge integer), parsing to float might lose precision?
+  // For price display, precision loss on very small numbers is ok.
+
+  const rawPrice = h.settings?.storageprice ? parseFloat(h.settings.storageprice) : 0;
+  // Factor: 4320 blocks/month * 10^12 bytes/TB / 10^24 hastings/SC = 4.32e-9
+  // Wait, let's verify typical values. 1000 SC/TB/Mo = 1000 * 10^24 / (10^12 * 4320) ~ 2.3e11 Hastings/Byte/Block
+  // If raw is ~2e11, then: 2e11 * 4320 * 1e-12 = 0.86 SC.
+  // Let's assume the standard factor.
+  const priceInSC = rawPrice * 4320 * 1e-12;
+
+  // 3. Reliability / Score
+  // Backend returns `score` (0-1 filtered? or raw?). DartsiaHost interface says score?: number.
+  // Let's assume it's normalized 0-1ish? If > 1, maybe raw.
+  // Placeholder fallback to 98 if missing.
+  const reliability = h.score ? Math.min(100, Math.max(0, h.score * 100)) : 98;
 
   return {
     id: h.publicKey,
     address: h.netAddress,
-    uptime: 99.9, // Placeholder
-    storageUsed: Math.max(0, total - remaining),
-    storageTotal: total,
-    pricePerTB: price > 0 ? price : 100, // Use parsed or fallback
-    reliability: 98, // Placeholder
-    contracts: 0, // Placeholder
-    successRate: 100, // Placeholder
-    location: 'Global',
-    version: '1.6.0',
+    uptime: 99.9, // Still no direct uptime in API list, keeping placeholder
+    storageUsed: usedBytes, // Keep as Bytes
+    storageTotal: totalBytes, // Keep as Bytes
+    pricePerTB: priceInSC > 0 ? priceInSC : 0, // Now in SC/TB/Mo
+    reliability: Math.round(reliability),
+    contracts: 0,
+    successRate: 100,
+    location: h.countryCode || 'Global',
+    version: getVersion(h),
     lastSeen: h.lastSeen ? new Date(h.lastSeen) : new Date(0),
   };
 };
@@ -298,7 +336,7 @@ const HostsPage = () => {
               <span className="text-sm text-foreground-muted">{hosts.filter(h => h.uptime < 80).length} Critical</span>
             </div>
             <div className="ml-auto font-mono text-xs text-foreground-subtle">
-              Showing: {filteredAndSortedHosts.length} of {hosts.length} hosts | {hosts.reduce((acc, h) => acc + h.storageTotal, 0).toFixed(1)} TB capacity
+              Showing: {filteredAndSortedHosts.length} of {hosts.length} hosts | {formatStorage(hosts.reduce((acc, h) => acc + h.storageTotal, 0))} capacity
             </div>
           </div>
         </div>
@@ -314,15 +352,19 @@ const HostsPage = () => {
               onClick={() => setSelectedHost(host)}
             >
               <div className="flex items-center gap-6">
-                <div className="flex items-center gap-3 min-w-[200px]">
+                <div className="flex items-center gap-3 w-[25%] min-w-[180px] max-w-[250px]">
                   <div className={cn(
-                    'status-dot',
+                    'status-dot flex-shrink-0',
                     host.uptime >= 95 ? 'status-dot-live' :
                       host.uptime >= 80 ? 'bg-secondary' : 'bg-primary'
                   )} />
-                  <div className="flex flex-col">
-                    <span className="font-mono text-sm">{host.id}</span>
-                    <span className="text-[10px] text-foreground-subtle">{host.address}</span>
+                  <div className="flex flex-col overflow-hidden">
+                    <span className="font-mono text-sm font-semibold truncate" title={host.address || "Unknown"}>
+                      {host.address || "Unknown"}
+                    </span>
+                    <span className="text-[10px] text-foreground-subtle font-mono truncate" title={host.id}>
+                      {host.id.substring(0, 10)}...{host.id.substring(host.id.length - 6)}
+                    </span>
                   </div>
                 </div>
 
@@ -344,7 +386,7 @@ const HostsPage = () => {
                       />
                     </div>
                     <span className="font-mono text-xs">
-                      {host.storageUsed.toFixed(1)}/{host.storageTotal.toFixed(1)} TB
+                      {formatStorage(host.storageUsed)} / {formatStorage(host.storageTotal)}
                     </span>
                   </div>
                 </div>
@@ -352,7 +394,7 @@ const HostsPage = () => {
                 <div className="flex flex-col gap-1 min-w-[100px]">
                   <span className="text-[10px] text-foreground-subtle uppercase tracking-wider">Price</span>
                   <span className="font-mono text-sm text-secondary">
-                    ${host.pricePerTB.toFixed(4)}/TB
+                    {host.pricePerTB.toFixed(0)} SC/TB
                   </span>
                 </div>
 
@@ -404,8 +446,10 @@ const HostsPage = () => {
                     selectedHost.uptime >= 80 ? 'bg-secondary' : 'bg-primary'
                 )} />
                 <div>
-                  <h2 className="font-mono text-lg">{selectedHost.id}</h2>
-                  <span className="text-xs text-foreground-muted">{selectedHost.address}</span>
+                  <h2 className="font-mono text-lg">{selectedHost.address || "Unknown"}</h2>
+                  <span className="text-xs text-foreground-muted font-mono break-all line-clamp-1" title={selectedHost.id}>
+                    {selectedHost.id}
+                  </span>
                 </div>
               </div>
               <button

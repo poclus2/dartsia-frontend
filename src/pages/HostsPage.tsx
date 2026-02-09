@@ -46,8 +46,17 @@ const mapHost = (h: DartsiaHost): Host => {
   // Component interfaces: storageTotal: number, storageUsed: number.
   // We will keep them as Bytes in the object, but format them in the UI JSX.
 
-  const totalBytes = Number(h.totalStorage || h.v2Settings?.totalStorage || h.settings?.totalstorage || 0);
-  const remainingBytes = Number(h.remainingStorage || h.v2Settings?.remainingStorage || h.settings?.remainingstorage || 0);
+  let totalBytes = Number(h.totalStorage || h.v2Settings?.totalStorage || h.settings?.totalstorage || 0);
+  let remainingBytes = Number(h.remainingStorage || h.v2Settings?.remainingStorage || h.settings?.remainingstorage || 0);
+
+  // Fix: V2 Settings often return storage in 4MiB sectors, not bytes.
+  // Heuristic: If total storage is unreasonably small (< 100 GB), assume sectors and multiply by 4194304.
+  const SECTOR_SIZE = 4194304; // 4 MiB
+  if (totalBytes > 0 && totalBytes < 100 * 1024 * 1024 * 1024) {
+    totalBytes *= SECTOR_SIZE;
+    remainingBytes *= SECTOR_SIZE;
+  }
+
   const usedBytes = Math.max(0, totalBytes - remainingBytes);
 
   // 2. Price: Prioritize V2 settings
@@ -64,15 +73,22 @@ const mapHost = (h: DartsiaHost): Host => {
   const priceInSC = rawPrice * 4320 * 1e-12;
 
   // 3. Reliability / Score
-  // Backend returns `score` (0-1 filtered? or raw?). DartsiaHost interface says score?: number.
-  // Let's assume it's normalized 0-1ish? If > 1, maybe raw.
-  // Placeholder fallback to 98 if missing.
   const reliability = h.score ? Math.min(100, Math.max(0, h.score * 100)) : 98;
+
+  // 4. Uptime: Use new backend fields if available, otherwise fallback to reliability (approx)
+  let uptimePercent = reliability;
+  if (h.totalUptime && h.uptimeHours) {
+    const uTotal = parseFloat(h.totalUptime);
+    const uHours = parseFloat(h.uptimeHours);
+    if (uHours > 0) {
+      uptimePercent = (uTotal / uHours) * 100;
+    }
+  }
 
   return {
     id: h.publicKey,
     address: h.netAddress,
-    uptime: 99.9, // Still no direct uptime in API list, keeping placeholder
+    uptime: Math.min(100, Math.max(0, uptimePercent)),
     storageUsed: usedBytes, // Keep as Bytes
     storageTotal: totalBytes, // Keep as Bytes
     pricePerTB: priceInSC > 0 ? priceInSC : 0, // Now in SC/TB/Mo

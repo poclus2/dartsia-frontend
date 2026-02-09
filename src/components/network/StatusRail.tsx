@@ -46,6 +46,17 @@ export interface StatusRailProps {
   usedStorage?: number; // in Bytes
 }
 
+const formatStorageValue = (bytes: number) => {
+  if (!bytes || bytes === 0) return { value: '0.00', unit: 'B' };
+  const k = 1000;
+  const sizes = ['B', 'kB', 'MB', 'GB', 'TB', 'PB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return {
+    value: (bytes / Math.pow(k, i)).toFixed(2),
+    unit: sizes[i] || 'PB'
+  };
+};
+
 export const StatusRail = ({
   blockHeight = 0,
   blockHash = 'Loading...',
@@ -54,7 +65,7 @@ export const StatusRail = ({
   usedStorage = 0
 }: StatusRailProps) => {
 
-
+  const { value: storageVal, unit: storageUnit } = formatStorageValue(usedStorage);
 
   return (
     <div className="w-full bg-background-elevated/80 backdrop-blur-sm border-b border-border">
@@ -115,8 +126,8 @@ export const StatusRail = ({
           <Metric
             icon={HardDrive}
             label="Used Storage"
-            value={(usedStorage / 1000 / 1000 / 1000 / 1000 / 1000).toFixed(2)} // Bytes -> PB
-            subValue="PB"
+            value={storageVal}
+            subValue={storageUnit}
           />
         </div>
 

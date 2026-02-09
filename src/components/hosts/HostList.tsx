@@ -36,8 +36,11 @@ export function HostList({ hosts, isLoading }: HostListProps) {
                 <TableBody>
                     {hosts.map((host) => (
                         <TableRow key={host.public_key}>
-                            <TableCell className="font-mono text-xs text-primary">
-                                {host.net_address}
+                            <TableCell className="font-mono text-xs">
+                                <div className="text-primary font-semibold">{host.net_address || "Unknown Address"}</div>
+                                <div className="text-[10px] text-muted-foreground mt-0.5" title={host.public_key}>
+                                    {host.public_key.substring(0, 10)}...{host.public_key.substring(host.public_key.length - 6)}
+                                </div>
                             </TableCell>
                             <TableCell>{formatStorage(host.total_storage)}</TableCell>
                             <TableCell className="text-muted-foreground">

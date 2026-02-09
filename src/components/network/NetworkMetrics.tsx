@@ -170,9 +170,9 @@ export const NetworkMetrics = () => {
 
           <div className="flex items-baseline gap-1 mb-3">
             <span className="text-2xl font-semibold font-mono text-foreground">
-              ${metrics.avgPrice.value}
+              {metrics.avgPrice.value}
             </span>
-            <span className="text-sm text-foreground-muted">/TB/mo</span>
+            <span className="text-sm text-foreground-muted">SC/TB/mo</span>
           </div>
 
           <MiniChart data={chartData.price} color="bg-primary/60" />

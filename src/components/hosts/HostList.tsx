@@ -26,33 +26,36 @@ export function HostList({ hosts, isLoading }: HostListProps) {
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>Host Address</TableHead>
-                        <TableHead>Total Storage</TableHead>
-                        <TableHead>Used Storage</TableHead>
-                        <TableHead>Price / TB / Mo</TableHead>
-                        <TableHead>Version</TableHead>
+                        <TableHead className="w-[40%]">Host Address</TableHead>
+                        <TableHead className="w-[20%]">Storage</TableHead>
+                        <TableHead className="w-[20%]">Price / TB / Mo</TableHead>
+                        <TableHead className="w-[10%] text-right">Version</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {hosts.map((host) => (
                         <TableRow key={host.public_key}>
-                            <TableCell className="font-mono text-xs">
-                                <div className="text-primary font-semibold">{host.net_address || "Unknown Address"}</div>
-                                <div className="text-[10px] text-muted-foreground mt-0.5" title={host.public_key}>
-                                    {host.public_key.substring(0, 10)}...{host.public_key.substring(host.public_key.length - 6)}
+                            <TableCell className="font-mono text-xs max-w-[200px]">
+                                <div className="text-primary font-semibold truncate" title={host.net_address}>
+                                    {host.net_address || "Unknown"}
+                                </div>
+                                <div className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1" title={host.public_key}>
+                                    <span className="truncate">{host.public_key.substring(0, 12)}...{host.public_key.substring(host.public_key.length - 6)}</span>
                                 </div>
                             </TableCell>
-                            <TableCell>{formatStorage(host.total_storage)}</TableCell>
-                            <TableCell className="text-muted-foreground">
-                                {formatStorage(host.used_storage)}
+                            <TableCell>
+                                <div className="flex flex-col text-sm">
+                                    <span className="font-medium">{formatStorage(host.used_storage)}</span>
+                                    <span className="text-xs text-muted-foreground">/ {formatStorage(host.total_storage)}</span>
+                                </div>
                             </TableCell>
-                            <TableCell>{host.price} SC</TableCell>
-                            <TableCell>{host.version}</TableCell>
+                            <TableCell className="text-sm font-medium">{host.price} SC</TableCell>
+                            <TableCell className="text-sm text-right">{host.version}</TableCell>
                         </TableRow>
                     ))}
                     {hosts.length === 0 && (
                         <TableRow>
-                            <TableCell colSpan={5} className="h-24 text-center">
+                            <TableCell colSpan={4} className="h-24 text-center">
                                 No active hosts found.
                             </TableCell>
                         </TableRow>

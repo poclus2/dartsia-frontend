@@ -51,6 +51,18 @@ export interface DartsiaHost {
         storageprice?: string;
         totalstorage?: number;
         remainingstorage?: number;
+        version?: string;
+        release?: string;
+    };
+    v2Settings?: {
+        prices?: {
+            storagePrice?: string;
+            ingressPrice?: string;
+            egressPrice?: string;
+        };
+        totalStorage?: number;
+        remainingStorage?: number;
+        acceptingContracts?: boolean;
     };
 }
 

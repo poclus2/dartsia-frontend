@@ -46,20 +46,17 @@ const mapHost = (h: DartsiaHost): Host => {
   // Component interfaces: storageTotal: number, storageUsed: number.
   // We will keep them as Bytes in the object, but format them in the UI JSX.
 
-  const totalBytes = Number(h.totalStorage || h.settings?.totalstorage || 0);
-  const remainingBytes = Number(h.remainingStorage || h.settings?.remainingstorage || 0);
+  const totalBytes = Number(h.totalStorage || h.v2Settings?.totalStorage || h.settings?.totalstorage || 0);
+  const remainingBytes = Number(h.remainingStorage || h.v2Settings?.remainingStorage || h.settings?.remainingstorage || 0);
   const usedBytes = Math.max(0, totalBytes - remainingBytes);
 
-  // 2. Price: Backend sends "Hastings / Byte / Block" (usually) or similar raw unit
-  // Conversion: 1 SC = 10^24 Hastings.
-  // We want SC / TB / Month.
-  // 1 TB = 10^12 Bytes.
-  // 1 Month = ~4320 blocks (approx).
-  // Formula: (RawPrice * 10^12 * 4320) / 10^24 = RawPrice * 4320 * 1e-12
-  // But wait, if input is string "123..." (huge integer), parsing to float might lose precision?
-  // For price display, precision loss on very small numbers is ok.
-
-  const rawPrice = h.settings?.storageprice ? parseFloat(h.settings.storageprice) : 0;
+  // 2. Price: Prioritize V2 settings
+  let rawPrice = 0;
+  if (h.v2Settings?.prices?.storagePrice) {
+    rawPrice = parseFloat(h.v2Settings.prices.storagePrice);
+  } else if (h.settings?.storageprice) {
+    rawPrice = parseFloat(h.settings.storageprice);
+  }
   // Factor: 4320 blocks/month * 10^12 bytes/TB / 10^24 hastings/SC = 4.32e-9
   // Wait, let's verify typical values. 1000 SC/TB/Mo = 1000 * 10^24 / (10^12 * 4320) ~ 2.3e11 Hastings/Byte/Block
   // If raw is ~2e11, then: 2e11 * 4320 * 1e-12 = 0.86 SC.

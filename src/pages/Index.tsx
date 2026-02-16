@@ -43,6 +43,7 @@ const Index = () => {
 
   // Mobile view
   if (isMobile) {
+    const activeHostsCount = networkStats?.activeHosts || 0;
     return (
       <div className="flex flex-col">
         {/* Network Activity Section */}

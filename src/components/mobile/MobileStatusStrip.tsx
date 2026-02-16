@@ -1,5 +1,6 @@
-import { Activity, Box, Server, Wifi } from 'lucide-react';
+import { Activity, Box, Server, Wifi, DollarSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useNetworkStats } from '@/hooks/useDartsia';
 
 interface StatusItem {
   icon: React.ElementType;
@@ -8,14 +9,36 @@ interface StatusItem {
   status: 'healthy' | 'warning' | 'critical';
 }
 
-const statusItems: StatusItem[] = [
-  { icon: Box, label: 'Height', value: '234,567', status: 'healthy' },
-  { icon: Wifi, label: 'Network', value: 'Synced', status: 'healthy' },
-  { icon: Server, label: 'Hosts', value: '312', status: 'healthy' },
-  { icon: Activity, label: 'TPS', value: '12.4', status: 'healthy' },
-];
-
 export const MobileStatusStrip = () => {
+  const { data: stats } = useNetworkStats();
+
+  const statusItems: StatusItem[] = [
+    {
+      icon: Box,
+      label: 'Height',
+      value: stats?.blockHeight ? stats.blockHeight.toLocaleString() : '...',
+      status: stats ? 'healthy' : 'warning'
+    },
+    {
+      icon: Wifi,
+      label: 'Network',
+      value: stats ? 'Synced' : 'Connecting...',
+      status: stats ? 'healthy' : 'warning'
+    },
+    {
+      icon: Server,
+      label: 'Hosts',
+      value: stats?.activeHosts ? stats.activeHosts.toLocaleString() : '...',
+      status: 'healthy'
+    },
+    {
+      icon: DollarSign, // Changed from Activity (TPS) to Price
+      label: 'Price',
+      value: stats?.avgStoragePrice ? `${stats.avgStoragePrice.toFixed(1)} SC` : '...',
+      status: 'healthy'
+    },
+  ];
+
   return (
     <div className="flex items-center justify-between px-3 py-1.5 bg-muted/30 border-b border-border">
       {statusItems.map((item, i) => {

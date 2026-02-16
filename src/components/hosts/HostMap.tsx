@@ -1,101 +1,105 @@
 import { useMemo } from 'react';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { cn } from '@/lib/utils';
-import { MapPin } from 'lucide-react';
+
+// Fix for default Leaflet markers in React
+import icon from 'leaflet/dist/images/marker-icon.png';
+import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+
+let DefaultIcon = L.icon({
+    iconUrl: icon,
+    shadowUrl: iconShadow,
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+});
+
+L.Marker.prototype.options.icon = DefaultIcon;
 
 interface HostMapProps {
-    countryCode: string; // e.g., 'US', 'DE'
+    countryCode: string;
 }
 
-// Approximate Lat/Long for countries
-const COUNTRY_COORDS: Record<string, { lat: number; lng: number }> = {
-    'US': { lat: 37.0902, lng: -95.7129 },
-    'DE': { lat: 51.1657, lng: 10.4515 },
-    'FR': { lat: 46.2276, lng: 2.2137 },
-    'GB': { lat: 55.3781, lng: -3.4360 },
-    'CA': { lat: 56.1304, lng: -106.3468 },
-    'AU': { lat: -25.2744, lng: 133.7751 },
-    'CN': { lat: 35.8617, lng: 104.1954 },
-    'JP': { lat: 36.2048, lng: 138.2529 },
-    'RU': { lat: 61.5240, lng: 105.3188 },
-    'BR': { lat: -14.2350, lng: -51.9253 },
-    'IN': { lat: 20.5937, lng: 78.9629 },
-    'NL': { lat: 52.1326, lng: 5.2913 },
-    'SG': { lat: 1.3521, lng: 103.8198 },
-    'HK': { lat: 22.3193, lng: 114.1694 },
-    'FI': { lat: 61.9241, lng: 25.7482 },
-    'SE': { lat: 60.1282, lng: 18.6435 },
-    'NO': { lat: 60.4720, lng: 8.4689 },
-    'PL': { lat: 51.9194, lng: 19.1451 },
-    'ES': { lat: 40.4637, lng: -3.7492 },
-    'IT': { lat: 41.8719, lng: 12.5674 },
-    'CH': { lat: 46.8182, lng: 8.2275 },
-    'AT': { lat: 47.5162, lng: 14.5501 },
-    'BE': { lat: 50.5039, lng: 4.4699 },
-    'XX': { lat: 0, lng: 0 },
+// Custom Pulse Icon
+const createPulseIcon = () => {
+    return L.divIcon({
+        className: 'custom-pin',
+        html: `<div class="relative">
+                 <div class="absolute -left-3 -top-3 w-6 h-6 bg-primary rounded-full animate-ping opacity-50"></div>
+                 <div class="w-3 h-3 bg-primary rounded-full border-2 border-background shadow-[0_0_10px_rgba(var(--primary),0.8)]"></div>
+               </div>`,
+        iconSize: [0, 0], // CSS handles size
+        iconAnchor: [0, 0], // Center it
+    });
+};
+
+// Approximate Lat/Long for countries (Expanded list if needed, keeping basic set for now)
+const COUNTRY_COORDS: Record<string, { lat: number; lng: number, zoom: number }> = {
+    'US': { lat: 39.0902, lng: -98.7129, zoom: 4 },
+    'DE': { lat: 51.1657, lng: 10.4515, zoom: 6 },
+    'FR': { lat: 46.2276, lng: 2.2137, zoom: 6 },
+    'GB': { lat: 55.3781, lng: -3.4360, zoom: 5 },
+    'CA': { lat: 56.1304, lng: -106.3468, zoom: 3 },
+    'AU': { lat: -25.2744, lng: 133.7751, zoom: 4 },
+    'CN': { lat: 35.8617, lng: 104.1954, zoom: 4 },
+    'JP': { lat: 36.2048, lng: 138.2529, zoom: 5 },
+    'RU': { lat: 61.5240, lng: 105.3188, zoom: 3 },
+    'BR': { lat: -14.2350, lng: -51.9253, zoom: 4 },
+    'IN': { lat: 20.5937, lng: 78.9629, zoom: 5 },
+    'NL': { lat: 52.1326, lng: 5.2913, zoom: 7 },
+    'SG': { lat: 1.3521, lng: 103.8198, zoom: 11 },
+    'Hong Kong': { lat: 22.3193, lng: 114.1694, zoom: 11 },
+    'HK': { lat: 22.3193, lng: 114.1694, zoom: 11 },
+    'FI': { lat: 61.9241, lng: 25.7482, zoom: 5 },
+    'SE': { lat: 60.1282, lng: 18.6435, zoom: 5 },
+    'NO': { lat: 60.4720, lng: 8.4689, zoom: 5 },
+    'PL': { lat: 51.9194, lng: 19.1451, zoom: 6 },
+    'ES': { lat: 40.4637, lng: -3.7492, zoom: 6 },
+    'IT': { lat: 41.8719, lng: 12.5674, zoom: 6 },
+    'CH': { lat: 46.8182, lng: 8.2275, zoom: 7 },
+    'AT': { lat: 47.5162, lng: 14.5501, zoom: 7 },
+    'BE': { lat: 50.5039, lng: 4.4699, zoom: 7 },
+    'XX': { lat: 20, lng: 0, zoom: 2 }, // Default world view
 };
 
 export const HostMap: React.FC<HostMapProps> = ({ countryCode }) => {
-    const coords = useMemo(() => {
-        return COUNTRY_COORDS[countryCode] || { lat: 0, lng: 0 };
+    const { lat, lng, zoom } = useMemo(() => {
+        return COUNTRY_COORDS[countryCode] || { lat: 20, lng: 0, zoom: 2 };
     }, [countryCode]);
 
-    // Project to simple percentage (Equirectangular)
-    // x: -180 to 180 -> 0 to 100
-    // y: 90 to -90 -> 0 to 100
-    const x = ((coords.lng + 180) / 360) * 100;
-    const y = ((90 - coords.lat) / 180) * 100;
-
     return (
-        <div className="relative w-full h-[300px] bg-background-elevated border border-border rounded-xl overflows-hidden">
-            {/* Grid Background */}
-            <div className="absolute inset-0 opacity-20">
-                <svg className="w-full h-full">
-                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="0.5" />
-                    </pattern>
-                    <rect width="100%" height="100%" fill="url(#grid)" />
-                </svg>
-            </div>
-
-            {/* World Map Background (Simplified SVG) */}
-            <div className="absolute inset-0 opacity-10 pointer-events-none">
-                <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-                    {/* Rough Continents */}
-                    <path d="M20,20 Q40,10 50,30 T20,50" fill="currentColor" />
-                    <path d="M60,20 Q80,10 90,30 T60,50" fill="currentColor" />
-                    <path d="M30,60 Q50,70 60,90 T30,80" fill="currentColor" />
-                    {/* This is a very abstract representation, better to use the one from MapPage if available, 
-                but I'll reuse the MapPage SVG structure for consistency.
-            */}
-                    <ellipse cx="30" cy="35" rx="12" ry="8" fill="currentColor" />
-                    <ellipse cx="32" cy="58" rx="6" ry="10" fill="currentColor" />
-                    <ellipse cx="52" cy="35" rx="8" ry="6" fill="currentColor" />
-                    <ellipse cx="55" cy="50" rx="12" ry="10" fill="currentColor" />
-                    <ellipse cx="75" cy="40" rx="15" ry="12" fill="currentColor" />
-                    <ellipse cx="85" cy="68" rx="6" ry="5" fill="currentColor" />
-                </svg>
-            </div>
-
-            {/* Host Pin */}
-            <div
-                className="absolute transform -translate-x-1/2 -translate-y-1/2"
-                style={{ left: `${x}%`, top: `${y}%` }}
+        <div className="relative w-full h-[350px] bg-background-elevated border border-border rounded-xl overflow-hidden shadow-lg group">
+            {/* Map Container */}
+            <MapContainer
+                center={[lat, lng]}
+                zoom={zoom}
+                scrollWheelZoom={false}
+                className="w-full h-full z-0"
+                key={`${countryCode}-${lat}-${lng}`} // Key forces re-render when location changes
             >
-                <div className="relative">
-                    <div className="absolute inset-0 bg-primary rounded-full animate-ping opacity-50 w-8 h-8 -left-2 -top-2"></div>
-                    <div className="relative bg-background-elevated p-1 rounded-full border border-primary shadow-[0_0_15px_rgba(var(--primary),0.5)]">
-                        <MapPin size={16} className="text-primary fill-primary/20" />
-                    </div>
-                </div>
+                {/* CartoDB Dark Matter Tiles - "Expressive" & Dark Mode friendly */}
+                <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                />
 
-                {/* Label */}
-                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-background/80 backdrop-blur px-2 py-1 rounded text-[10px] font-mono whitespace-nowrap border border-border">
-                    {countryCode}
-                </div>
-            </div>
+                <Marker position={[lat, lng]} icon={createPulseIcon()}>
+                    <Popup className="custom-popup font-mono text-xs">
+                        <div className="text-foreground">
+                            <strong>Host Location</strong><br />
+                            Region: {countryCode}
+                        </div>
+                    </Popup>
+                </Marker>
+            </MapContainer>
 
-            <div className="absolute top-4 left-4">
-                <h3 className="text-xs uppercase tracking-wider text-foreground-subtle">Host Location</h3>
+            {/* Overlay Label */}
+            <div className="absolute top-4 left-4 z-[400] bg-background/80 backdrop-blur-md px-3 py-1.5 rounded-lg border border-border">
+                <h3 className="text-xs uppercase tracking-wider text-foreground-subtle flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                    {countryCode !== 'XX' ? `Region: ${countryCode}` : 'Global Location'}
+                </h3>
             </div>
         </div>
     );

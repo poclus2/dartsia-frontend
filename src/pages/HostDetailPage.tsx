@@ -94,7 +94,7 @@ const HostDetailPage = () => {
     const version = host.settings?.version || host.settings?.release || "Unknown";
 
     return (
-        <div className="min-h-screen bg-background text-foreground pb-20">
+        <div className="h-screen w-full bg-background text-foreground pb-20 overflow-y-auto overflow-x-hidden">
             {/* Header */}
             <div className="sticky top-0 z-30 bg-background-elevated/80 backdrop-blur-md border-b border-border px-6 py-4 flex items-center gap-4">
                 <button
@@ -104,7 +104,7 @@ const HostDetailPage = () => {
                     <ArrowLeft size={20} />
                 </button>
                 <div>
-                    <h1 className="text-lg font-mono font-semibold truncate max-w-[300px] md:max-w-none">
+                    <h1 className="text-lg font-mono font-semibold truncate max-w-[200px] md:max-w-none">
                         {host.netAddress}
                     </h1>
                     <div className="flex items-center gap-2">
@@ -124,7 +124,7 @@ const HostDetailPage = () => {
                     </div>
 
                     {/* Speed Gauges (1/3 width) */}
-                    <div className="grid grid-cols-2 gap-4 lg:grid-cols-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
                         <SpeedGauge
                             label="Upload Speed"
                             value={105} // Mock value (backend doesn't provide real speed tests yet)

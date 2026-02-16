@@ -69,7 +69,7 @@ export const HostMap: React.FC<HostMapProps> = ({ countryCode }) => {
     }, [countryCode]);
 
     return (
-        <div className="relative w-full h-[350px] bg-background-elevated border border-border rounded-xl overflow-hidden shadow-lg group">
+        <div className="relative w-full h-[250px] md:h-[350px] bg-background-elevated border border-border rounded-xl overflow-hidden shadow-lg group">
             {/* Map Container */}
             <MapContainer
                 center={[lat, lng]}

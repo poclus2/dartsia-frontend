@@ -6,9 +6,8 @@ import { useState } from 'react';
 const navItems = [
   { path: '/', icon: Activity, label: 'Network' },
   { path: '/blocks', icon: Box, label: 'Blocks' },
-  { path: '/transactions', icon: ArrowRightLeft, label: 'Txns' },
+  { path: '/txs', icon: ArrowRightLeft, label: 'Txns' },
   { path: '/hosts', icon: Server, label: 'Hosts' },
-  { path: '/analytics', icon: BarChart3, label: 'Analytics' },
 ];
 
 export const MobileBottomNav = () => {
@@ -21,7 +20,7 @@ export const MobileBottomNav = () => {
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
           const Icon = item.icon;
-          
+
           return (
             <NavLink
               key={item.path}
@@ -38,13 +37,13 @@ export const MobileBottomNav = () => {
               {isActive && (
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary" />
               )}
-              
-              <Icon 
-                size={20} 
+
+              <Icon
+                size={20}
                 strokeWidth={isActive ? 2.5 : 2}
                 className="mb-0.5"
               />
-              
+
               {/* Label on long press or active */}
               <span className={cn(
                 'text-[9px] uppercase tracking-wider font-medium transition-opacity',

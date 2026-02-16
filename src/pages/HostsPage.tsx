@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import { Server, ArrowUpRight, Wifi, HardDrive, DollarSign, Shield, X, TrendingUp, TrendingDown, Filter, ChevronRight } from 'lucide-react';
+import { Server, ArrowUpRight, Wifi, HardDrive, DollarSign, Shield, X, TrendingUp, TrendingDown, Filter, ChevronRight, ExternalLink } from 'lucide-react';
 import { SearchInput } from '@/components/search/SearchInput';
 import { MobileHostRow } from '@/components/mobile/MobileHostRow';
 import { MobileBottomSheet } from '@/components/mobile/MobileBottomSheet';
@@ -8,6 +8,7 @@ import { useMobile } from '@/hooks/useMobile';
 import { useHosts } from '@/hooks/useDartsia';
 import { DartsiaHost } from '@/types/dartsia';
 import { FourSquaresLoader } from '@/components/ui/loaders/FourSquaresLoader';
+import { useNavigate } from 'react-router-dom';
 
 interface Host {
   id: string;
@@ -144,6 +145,7 @@ const HostsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSort, setShowSort] = useState(false);
   const { isMobile } = useMobile();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (hostsData) {
@@ -269,9 +271,9 @@ const HostsPage = () => {
           height="full"
         >
           {selectedHost && (
-            <div className="animate-fade-in">
+            <div className="animate-fade-in flex flex-col h-full">
               {/* Score Summary */}
-              <div className="p-4 border-b border-border-subtle">
+              <div className="p-4 border-b border-border-subtle flex-1">
                 <div className="flex items-center gap-3 mb-4">
                   <div className={cn(
                     'w-3 h-3 rounded-full',
@@ -292,7 +294,15 @@ const HostsPage = () => {
                 </div>
               </div>
 
-
+              <div className="p-4 border-t border-border bg-background">
+                <button
+                  onClick={() => navigate(`/host/${selectedHost.id}`)}
+                  className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors"
+                >
+                  <ExternalLink size={16} />
+                  See more details
+                </button>
+              </div>
             </div>
           )}
         </MobileBottomSheet>
@@ -445,53 +455,64 @@ const HostsPage = () => {
       <div
         className={cn(
           'fixed right-0 top-0 h-screen w-[450px] bg-background-elevated/95 backdrop-blur-xl',
-          'border-l border-border transition-transform duration-300 z-40 overflow-y-auto',
+          'border-l border-border transition-transform duration-300 z-40 overflow-y-auto flex flex-col',
           selectedHost ? 'translate-x-0' : 'translate-x-full'
         )}
       >
         {selectedHost && (
-          <div className="animate-fade-in">
-            <div className="sticky top-0 bg-background-elevated/95 backdrop-blur-xl border-b border-border p-6 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={cn(
-                  'w-3 h-3 rounded-full',
-                  selectedHost.uptime >= 95 ? 'bg-success glow-success' :
-                    selectedHost.uptime >= 80 ? 'bg-secondary' : 'bg-primary'
-                )} />
-                <div>
-                  <h2 className="font-mono text-lg">{selectedHost.address || "Unknown"}</h2>
-                  <span className="text-xs text-foreground-muted font-mono break-all line-clamp-1" title={selectedHost.id}>
-                    {selectedHost.id}
-                  </span>
+          <>
+            <div className="animate-fade-in flex-1">
+              <div className="sticky top-0 bg-background-elevated/95 backdrop-blur-xl border-b border-border p-6 flex items-center justify-between z-10">
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    'w-3 h-3 rounded-full',
+                    selectedHost.uptime >= 95 ? 'bg-success glow-success' :
+                      selectedHost.uptime >= 80 ? 'bg-secondary' : 'bg-primary'
+                  )} />
+                  <div>
+                    <h2 className="font-mono text-lg">{selectedHost.address || "Unknown"}</h2>
+                    <span className="text-xs text-foreground-muted font-mono break-all line-clamp-1" title={selectedHost.id}>
+                      {selectedHost.id}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedHost(null)}
+                  className="p-2 hover:bg-muted/30 transition-colors"
+                >
+                  <X size={18} className="text-foreground-muted" />
+                </button>
+              </div>
+
+              <div className="p-6 border-b border-border-subtle">
+                <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
+                  <Shield size={14} className="text-secondary" />
+                  Score Breakdown
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <ScoreIndicator score={selectedHost.uptime} label="Uptime" />
+                  <ScoreIndicator score={selectedHost.reliability} label="Reliability" />
+                  <ScoreIndicator score={selectedHost.successRate} label="Success Rate" />
+                  <ScoreIndicator score={(1 - selectedHost.pricePerTB / 0.005) * 100} label="Price Score" />
                 </div>
               </div>
+            </div>
+
+            <div className="p-6 border-t border-border bg-background-elevated/50 sticky bottom-0">
               <button
-                onClick={() => setSelectedHost(null)}
-                className="p-2 hover:bg-muted/30 transition-colors"
+                onClick={() => navigate(`/host/${selectedHost.id}`)}
+                className="w-full flex items-center justify-center gap-2 bg-secondary/10 hover:bg-secondary/20 text-secondary border border-secondary/20 py-3 rounded-lg font-medium transition-colors"
               >
-                <X size={18} className="text-foreground-muted" />
+                <ExternalLink size={16} />
+                See more details
               </button>
             </div>
-
-            <div className="p-6 border-b border-border-subtle">
-              <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
-                <Shield size={14} className="text-secondary" />
-                Score Breakdown
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <ScoreIndicator score={selectedHost.uptime} label="Uptime" />
-                <ScoreIndicator score={selectedHost.reliability} label="Reliability" />
-                <ScoreIndicator score={selectedHost.successRate} label="Success Rate" />
-                <ScoreIndicator score={(1 - selectedHost.pricePerTB / 0.005) * 100} label="Price Score" />
-              </div>
-            </div>
-
-
-          </div>
+          </>
         )}
       </div>
     </div>
   );
 };
+
 
 export default HostsPage;

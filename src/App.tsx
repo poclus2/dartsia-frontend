@@ -10,6 +10,7 @@ import BlocksPage from "./pages/BlocksPage";
 import TransactionsPage from "./pages/TransactionsPage";
 import TransactionDetailPage from "./pages/TransactionDetailPage";
 import HostsPage from "./pages/HostsPage";
+import HostDetailPage from "./pages/HostDetailPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => (
               <Route path="/txs" element={<TransactionsPage />} />
               <Route path="/tx/:id" element={<TransactionDetailPage />} />
               <Route path="/hosts" element={<HostsPage />} />
+              <Route path="/host/:id" element={<HostDetailPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </MainLayout>

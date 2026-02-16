@@ -46,13 +46,24 @@ export interface DartsiaHost {
     remainingStorage?: number;
     acceptingContracts?: boolean;
     lastScan?: string;
-    lastSeen?: string;  // API returns this field
+    lastScanSuccessful?: boolean; // New field
+    lastSeen?: string;
+    firstSeen?: string; // New field
     settings?: {
         storageprice?: string;
         totalstorage?: number;
         remainingstorage?: number;
+        uploadbandwidthprice?: string; // New
+        downloadbandwidthprice?: string; // New
+        contractprice?: string; // New
+        sectoraccessprice?: string; // New
+        collateral?: string; // New
+        maxcollateral?: string; // New
+        acceptingcontracts?: boolean; // New
         version?: string;
         release?: string;
+        uploadprice?: string; // Legacy
+        downloadprice?: string; // Legacy
     };
     v2Settings?: {
         prices?: {

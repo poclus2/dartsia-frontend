@@ -8,6 +8,7 @@ interface MobileHostRowProps {
   priceCompetitive: boolean;
   contractSuccess: number;
   country: string;
+  online: boolean;
   onTap?: () => void;
 }
 
@@ -18,6 +19,7 @@ export const MobileHostRow = ({
   priceCompetitive,
   contractSuccess,
   country,
+  online,
   onTap
 }: MobileHostRowProps) => {
   // Risk level based on metrics
@@ -28,14 +30,15 @@ export const MobileHostRow = ({
   };
 
   const riskLevel = getRiskLevel();
-  
+
   const riskColors = {
     optimal: 'border-l-secondary',
     stable: 'border-l-success',
     warning: 'border-l-primary'
   };
 
-  const uptimeColor = uptime >= 99 ? 'bg-secondary' : uptime >= 95 ? 'bg-success' : 'bg-primary';
+  const uptimeColor = uptime >= 95 ? 'bg-success' : uptime >= 80 ? 'bg-secondary' : 'bg-primary';
+  const statusColor = online ? 'bg-success' : 'bg-primary';
 
   return (
     <button
@@ -55,22 +58,22 @@ export const MobileHostRow = ({
           </div>
           <div className={cn(
             'absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full',
-            uptimeColor
+            statusColor
           )} />
         </div>
-        
+
         <div className="min-w-0 text-left">
           {/* Host key */}
           <div className="text-xs font-mono truncate">
             {publicKey.slice(0, 16)}...
           </div>
-          
+
           {/* Metrics row */}
           <div className="flex items-center gap-2 mt-0.5">
             {/* Uptime bar */}
             <div className="flex items-center gap-1">
               <div className="w-12 h-1 bg-muted overflow-hidden">
-                <div 
+                <div
                   className={cn('h-full', uptimeColor)}
                   style={{ width: `${uptime}%` }}
                 />
@@ -79,7 +82,7 @@ export const MobileHostRow = ({
                 {uptime.toFixed(1)}%
               </span>
             </div>
-            
+
             {/* Country */}
             <span className="text-[8px] uppercase tracking-wider text-foreground-subtle bg-muted px-1 py-0.5">
               {country}
@@ -101,7 +104,7 @@ export const MobileHostRow = ({
               {reliability}%
             </span>
           </div>
-          
+
           {/* Price indicator */}
           <span className={cn(
             'text-[8px] uppercase tracking-wider',
@@ -110,7 +113,7 @@ export const MobileHostRow = ({
             {priceCompetitive ? 'Competitive' : 'Premium'}
           </span>
         </div>
-        
+
         <ChevronRight size={14} className="text-foreground-subtle" />
       </div>
     </button>

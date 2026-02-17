@@ -27,6 +27,7 @@ interface Host {
   location: string;
   version: string;
   lastSeen: Date;
+  online: boolean;
   // History removed as backend doesn't provide it yet
 }
 
@@ -129,6 +130,7 @@ const mapHost = (h: DartsiaHost): Host => {
     location: h.countryCode || 'Global',
     version: getVersion(h),
     lastSeen: h.lastSeen ? new Date(h.lastSeen) : new Date(0),
+    online: h.lastScanSuccessful !== false, // Default to true if undefined as fallback, or exact check
   };
 };
 
@@ -230,15 +232,15 @@ const HostsPage = () => {
         <div className="flex items-center gap-3 px-3 py-2 border-b border-border bg-muted/20">
           <div className="flex items-center gap-1">
             <div className="w-1.5 h-1.5 rounded-full bg-success" />
-            <span className="text-[10px] text-success font-medium">{hosts.filter(h => h.uptime >= 95).length}</span>
+            <span className="text-[10px] text-success font-medium">{hosts.filter(h => h.online).length}</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-1.5 h-1.5 rounded-full bg-secondary" />
-            <span className="text-[10px] text-foreground-muted">{hosts.filter(h => h.uptime < 95 && h.uptime >= 80).length}</span>
+            <span className="text-[10px] text-foreground-muted">0</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-            <span className="text-[10px] text-foreground-muted">{hosts.filter(h => h.uptime < 80).length}</span>
+            <span className="text-[10px] text-foreground-muted">{hosts.filter(h => !h.online).length}</span>
           </div>
           <div className="ml-auto">
             <button
@@ -262,6 +264,7 @@ const HostsPage = () => {
               priceCompetitive={host.pricePerTB < 0.002}
               contractSuccess={host.successRate}
               country={host.location.split('-')[0]}
+              online={host.online}
               onTap={() => setSelectedHost(host)}
             />
           ))}
@@ -307,8 +310,7 @@ const HostsPage = () => {
                 <div className="flex items-center gap-3 mb-4">
                   <div className={cn(
                     'w-3 h-3 rounded-full',
-                    selectedHost.uptime >= 95 ? 'bg-success' :
-                      selectedHost.uptime >= 80 ? 'bg-secondary' : 'bg-primary'
+                    selectedHost.online ? 'bg-success' : 'bg-primary'
                   )} />
                   <div>
                     <div className="font-mono text-sm">{selectedHost.id}</div>
@@ -378,15 +380,15 @@ const HostsPage = () => {
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2">
               <div className="status-dot status-dot-live" />
-              <span className="text-sm font-medium text-success">{hosts.filter(h => h.uptime >= 95).length} Online</span>
+              <span className="text-sm font-medium text-success">{hosts.filter(h => h.online).length} Online</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="status-dot bg-secondary" />
-              <span className="text-sm text-foreground-muted">{hosts.filter(h => h.uptime < 95 && h.uptime >= 80).length} Degraded</span>
+              <span className="text-sm text-foreground-muted">0 Degraded</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="status-dot bg-primary" />
-              <span className="text-sm text-foreground-muted">{hosts.filter(h => h.uptime < 80).length} Critical</span>
+              <span className="text-sm text-foreground-muted">{hosts.filter(h => !h.online).length} Critical</span>
             </div>
             <div className="ml-auto font-mono text-xs text-foreground-subtle">
               Showing: {filteredAndSortedHosts.length} of {hosts.length} hosts | {formatStorage(hosts.reduce((acc, h) => acc + h.storageTotal, 0))} capacity
@@ -408,8 +410,7 @@ const HostsPage = () => {
                 <div className="flex items-center gap-3 w-[25%] min-w-[180px] max-w-[250px]">
                   <div className={cn(
                     'status-dot flex-shrink-0',
-                    host.uptime >= 95 ? 'status-dot-live' :
-                      host.uptime >= 80 ? 'bg-secondary' : 'bg-primary'
+                    host.online ? 'status-dot-live' : 'bg-primary'
                   )} />
                   <div className="flex flex-col overflow-hidden">
                     <span className="font-mono text-sm font-semibold truncate" title={host.address || "Unknown"}>
@@ -496,8 +497,7 @@ const HostsPage = () => {
                 <div className="flex items-center gap-3">
                   <div className={cn(
                     'w-3 h-3 rounded-full',
-                    selectedHost.uptime >= 95 ? 'bg-success glow-success' :
-                      selectedHost.uptime >= 80 ? 'bg-secondary' : 'bg-primary'
+                    selectedHost.online ? 'bg-success glow-success' : 'bg-primary'
                   )} />
                   <div>
                     <h2 className="font-mono text-lg">{selectedHost.address || "Unknown"}</h2>

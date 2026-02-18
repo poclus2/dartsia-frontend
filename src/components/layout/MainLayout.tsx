@@ -1,4 +1,5 @@
 import { ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { MobileLayout } from '../mobile/MobileLayout';
 import { useMobile } from '@/hooks/useMobile';
@@ -9,10 +10,14 @@ interface MainLayoutProps {
 
 export const MainLayout = ({ children }: MainLayoutProps) => {
   const { isMobile } = useMobile();
+  const location = useLocation();
 
   if (isMobile) {
+    // Hide default search header on Hosts page as it has its own filter
+    const showSearch = location.pathname !== '/hosts';
+
     return (
-      <MobileLayout>
+      <MobileLayout showSearch={showSearch}>
         {children}
       </MobileLayout>
     );

@@ -4,6 +4,7 @@ import { Server, ArrowUpRight, Wifi, HardDrive, DollarSign, Shield, X, TrendingU
 import { SearchInput } from '@/components/search/SearchInput';
 import { MobileHostRow } from '@/components/mobile/MobileHostRow';
 import { MobileBottomSheet } from '@/components/mobile/MobileBottomSheet';
+import { MobileSearchHeader } from '@/components/mobile/MobileSearchHeader';
 import { useMobile } from '@/hooks/useMobile';
 import { useHosts } from '@/hooks/useDartsia';
 import { DartsiaHost } from '@/types/dartsia';
@@ -227,7 +228,15 @@ const HostsPage = () => {
   // Mobile View
   if (isMobile) {
     return (
-      <div className="flex flex-col">
+      <div className="flex flex-col pb-20">
+        {/* Mobile Search - Filter List */}
+        <MobileSearchHeader
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Filter hosts..."
+          className="sticky top-0 z-30"
+        />
+
         {/* Mobile Stats */}
         <div className="flex items-center gap-3 px-3 py-2 border-b border-border bg-muted/20">
           <div className="flex items-center gap-1">

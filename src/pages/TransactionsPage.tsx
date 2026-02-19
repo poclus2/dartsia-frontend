@@ -7,7 +7,7 @@ import { MobileBottomSheet } from '@/components/mobile/MobileBottomSheet';
 import { useMobile } from '@/hooks/useMobile';
 import { useRecentTxs } from '@/hooks/useDartsia';
 import { DartsiaTransaction } from '@/types/dartsia';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { FourSquaresLoader } from '@/components/ui/loaders/FourSquaresLoader';
 
 
@@ -74,6 +74,7 @@ const mapTransaction = (tx: DartsiaTransaction): Transaction => {
 
 const TransactionsPage = () => {
   const { data: txsData, isLoading } = useRecentTxs(100);
+  const navigate = useNavigate();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [activeFilters, setActiveFilters] = useState<Set<Transaction['type']>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');

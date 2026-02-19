@@ -64,7 +64,7 @@ const BlockDetailPage = () => {
             {/* Header */}
             <div className="sticky top-0 z-30 bg-background-elevated/95 backdrop-blur-xl border-b border-border px-4 md:px-6 h-16 flex items-center gap-4">
                 <button
-                    onClick={() => navigate(-1)}
+                    onClick={() => navigate('/blocks')}
                     className="p-2 -ml-2 hover:bg-muted/50 rounded-full transition-colors"
                 >
                     <ArrowLeft size={20} className="text-foreground-muted" />
@@ -140,7 +140,7 @@ const BlockDetailPage = () => {
                         <div className="flex flex-col md:flex-row gap-2 md:items-center justify-between py-2 border-b border-border-subtle">
                             <span className="text-sm text-foreground-muted w-32 shrink-0">Parent Hash</span>
                             <span className="font-mono text-xs md:text-sm break-all text-foreground-subtle">
-                                {block.parentId || 'Genesis'}
+                                {block.parent_id || 'Genesis'}
                             </span>
                         </div>
                         <div className="flex flex-col md:flex-row gap-2 md:items-center justify-between py-2 border-b border-border-subtle">

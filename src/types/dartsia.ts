@@ -9,6 +9,7 @@ export interface DartsiaBlock {
     transactions?: DartsiaTransaction[];
     transactionsCount?: number; // Backend sends count for list views
     fees?: number; // Backend sends pre-calculated fees in SC
+    size?: number; // Bytes
     miner_payouts?: Array<{ siacoin_output: SiacoinOutput }>;
 }
 

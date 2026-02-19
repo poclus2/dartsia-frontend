@@ -11,6 +11,7 @@ import TransactionsPage from "./pages/TransactionsPage";
 import TransactionDetailPage from "./pages/TransactionDetailPage";
 import HostsPage from "./pages/HostsPage";
 import HostDetailPage from "./pages/HostDetailPage";
+import BlockDetailPage from "./pages/BlockDetailPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/blocks" element={<BlocksPage />} />
+              <Route path="/block/:id" element={<BlockDetailPage />} />
               <Route path="/txs" element={<TransactionsPage />} />
               <Route path="/tx/:id" element={<TransactionDetailPage />} />
               <Route path="/hosts" element={<HostsPage />} />

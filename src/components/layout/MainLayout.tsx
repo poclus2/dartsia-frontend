@@ -13,8 +13,9 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
   const location = useLocation();
 
   if (isMobile) {
-    // Hide default search header on Hosts page as it has its own filter
-    const showSearch = location.pathname !== '/hosts';
+    // Hide default search header on Hosts page AND Block Detail page
+    // We want the block detail header to be the primary nav
+    const showSearch = location.pathname !== '/hosts' && !location.pathname.startsWith('/block/');
 
     return (
       <MobileLayout showSearch={showSearch}>

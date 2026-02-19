@@ -11,27 +11,27 @@ interface MobileLayoutProps {
   className?: string;
 }
 
-export const MobileLayout = ({ 
-  children, 
+export const MobileLayout = ({
+  children,
   showSearch = true,
   showStatus = true,
-  className 
+  className
 }: MobileLayoutProps) => {
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="h-screen overflow-hidden flex flex-col bg-background">
       {/* Top Section */}
       {showSearch && <MobileSearchHeader />}
       {showStatus && <MobileStatusStrip />}
-      
+
       {/* Main Content */}
       <main className={cn(
-        'flex-1 overflow-y-auto overscroll-contain',
-        'pb-16', // Space for bottom nav
+        'flex-1 overflow-y-auto overscroll-contain no-scrollbar',
+        'pb-20', // Ensure enough space for bottom nav + extra
         className
       )}>
         {children}
       </main>
-      
+
       {/* Bottom Navigation */}
       <MobileBottomNav />
     </div>

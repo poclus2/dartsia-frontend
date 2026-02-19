@@ -112,7 +112,7 @@ export const MobileBottomSheet = ({
         )}
 
         {/* Content */}
-        <div className="overflow-y-auto overscroll-contain" style={{ maxHeight: 'calc(100% - 60px)' }}>
+        <div className="px-4 pb-8 overflow-y-auto overscroll-contain" style={{ maxHeight: 'calc(100% - 60px)' }}>
           {children}
         </div>
       </div>

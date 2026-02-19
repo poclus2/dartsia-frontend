@@ -260,7 +260,7 @@ const TransactionsPage = () => {
                 onClick={() => navigate(`/tx/${selectedTx.id}`)}
                 className="w-full flex items-center justify-center gap-2 bg-secondary/10 hover:bg-secondary/20 text-secondary border border-secondary/20 py-3 rounded-lg font-medium transition-colors"
               >
-                <ArrowRightLeft size={16} />
+                <ArrowLeftRight size={16} />
                 View Full Details
               </button>
             </div>

@@ -16,6 +16,9 @@ export interface DartsiaBlock {
 export interface DartsiaTransaction {
     id: string;
     height?: number;
+    timestamp?: string; // Returned by getRecentTransactions
+    amount?: string;    // Pre-computed by backend in Hastings
+    fee?: string;       // Pre-computed by backend in Hastings
     siacoin_inputs?: SiacoinInput[];
     siacoin_outputs?: SiacoinOutput[];
     file_contract_revisions?: any[];

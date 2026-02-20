@@ -49,14 +49,22 @@ const mapTransaction = (tx: DartsiaTransaction): Transaction => {
     else if (tx.storage_proofs?.length) type = 'storage_proof';
   }
 
-  // Amounts
-  const amount = tx.siacoin_outputs?.reduce((sum, out) => sum + parseFloat(out.value), 0) || 0;
-  const fee = tx.miner_fees?.reduce((sum, fee) => sum + parseFloat(fee), 0) || 0;
+  // Amounts — backend pre-computes these as raw Hastings strings in getRecentTransactions().
+  // 1 SC = 10^24 Hastings. Convert safely using BigInt to avoid float precision issues.
+  const HASTINGS_PER_SC = BigInt('1000000000000000000000000'); // 10^24
+  const amountHastings = tx.amount ? BigInt(tx.amount) : 0n;
+  const feeHastings = tx.fee ? BigInt(tx.fee) : 0n;
+  // Convert to number SC with 4 decimal places
+  const amount = amountHastings > 0n
+    ? Number(amountHastings * 10000n / HASTINGS_PER_SC) / 10000
+    : 0;
+  const fee = feeHastings > 0n
+    ? Number(feeHastings * 10000n / HASTINGS_PER_SC) / 10000
+    : 0;
 
-  // From/To addresses (simplified)
-  // Input parent_id doesn't directly give address without lookup. 
-  // We can't easily get 'from' without scanning previous outputs.
-  // For now, use placeholder or first output address as 'to'.
+  // Use timestamp from backend if available
+  const timestamp = tx.timestamp ? new Date(tx.timestamp) : new Date();
+
   const from = 'Multiple Inputs';
   const to = tx.siacoin_outputs?.[0]?.address || 'Multiple Outputs';
 
@@ -66,7 +74,7 @@ const mapTransaction = (tx: DartsiaTransaction): Transaction => {
     blockHeight: tx.height || 0,
     amount,
     fee,
-    timestamp: new Date(), // API might not return timestamp for recent txs endpoint? DartsiaBlock has it.
+    timestamp,
     from,
     to
   };
